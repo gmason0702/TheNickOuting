@@ -19,7 +19,7 @@ npm run dev
 | Variable | Purpose |
 |---|---|
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account email with Editor access to the Sheet |
-| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Service account private key (`\n`-escaped) |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_B64` | Service account private key, base64-encoded (avoids newline-mangling in env var UIs) |
 | `GOOGLE_SHEET_ID` | Spreadsheet ID of `Invites List - golf_invite_list` |
 | `GOOGLE_SHEET_TAB_NAME` | Sheet tab name (defaults to `Sheet1`) |
 | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | PayPal REST app credentials |

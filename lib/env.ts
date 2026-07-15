@@ -9,7 +9,9 @@ export const env = {
     return required("GOOGLE_SERVICE_ACCOUNT_EMAIL");
   },
   get googleServiceAccountPrivateKey() {
-    return required("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY").replace(/\\n/g, "\n");
+    return Buffer.from(required("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_B64"), "base64").toString(
+      "utf8",
+    );
   },
   get googleSheetId() {
     return required("GOOGLE_SHEET_ID");

@@ -24,7 +24,7 @@ vi.mock("googleapis", () => {
 });
 
 process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL = "sa@example.iam.gserviceaccount.com";
-process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = "fake-key";
+process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_B64 = Buffer.from("fake-key").toString("base64");
 process.env.GOOGLE_SHEET_ID = "sheet-id-123";
 process.env.GOOGLE_SHEET_TAB_NAME = "Invites List - golf_invite_list";
 
