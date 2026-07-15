@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { EventHead } from "@/app/EventHead";
-import { CheckIcon, XIcon } from "@/app/icons";
 import { submitRsvp } from "./actions";
 
 interface Props {
@@ -48,13 +47,7 @@ export function RsvpForm({ token, name, fee, initialGolferCount, initialReceptio
     return (
       <main className="frame">
         <div className="card">
-          <EventHead />
-          <div className={`check-mark ${isDecline ? "declined" : "confirmed"}`}>
-            {isDecline ? <XIcon /> : <CheckIcon />}
-          </div>
-          <span className={`status-chip ${isDecline ? "declined" : "confirmed"}`}>
-            {isDecline ? "Not attending" : "Confirmed"}
-          </span>
+          <EventHead golfing={confirmed.golferCount > 0} reception={confirmed.receptionCount > 0} />
           <h1>
             {isDecline
               ? "Thanks for letting us know"

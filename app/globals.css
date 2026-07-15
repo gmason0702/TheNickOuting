@@ -7,8 +7,6 @@
   --accent: #2f6f4e;
   --accent-hover: #275c40;
   --accent-soft: #e6efe8;
-  --gold: #b8862f;
-  --gold-soft: #f5ead2;
   --danger: #a8402f;
   --danger-soft: #f5e6e1;
   --radius: 10px;
@@ -25,8 +23,6 @@
     --accent: #59a878;
     --accent-hover: #6fbb8c;
     --accent-soft: #1f3327;
-    --gold: #d9ab52;
-    --gold-soft: #33291a;
     --danger: #d97b68;
     --danger-soft: #3a231f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
@@ -124,6 +120,27 @@ body {
   font-size: 18px;
   margin: 0;
   text-wrap: balance;
+}
+
+.head-status {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.head-status.confirmed {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.head-status.declined {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 h1 {
@@ -251,53 +268,6 @@ p.lede {
 .btn-primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.status-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: 999px;
-  width: fit-content;
-}
-
-.status-chip.confirmed {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.status-chip.declined {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-
-.status-chip.paid {
-  background: var(--gold-soft);
-  color: var(--gold);
-}
-
-.check-mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.check-mark.confirmed {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.check-mark.declined {
-  background: var(--danger-soft);
-  color: var(--danger);
 }
 
 .link-reset {

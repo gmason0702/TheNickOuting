@@ -1,5 +1,4 @@
 import { EventHead } from "@/app/EventHead";
-import { CheckIcon } from "@/app/icons";
 import { findRowByToken } from "@/lib/sheets";
 import { NotFound } from "../../NotFound";
 
@@ -17,11 +16,7 @@ export default async function ConfirmedPage({
     return (
       <main className="frame">
         <div className="card">
-          <EventHead />
-          <div className="check-mark confirmed">
-            <CheckIcon />
-          </div>
-          <span className="status-chip paid">Confirmed &amp; paid</span>
+          <EventHead golfing={(row.golfRsvpCount ?? 0) > 0} reception={(row.receptionCount ?? 0) > 0} />
           <h1>
             You&apos;re confirmed — {row.golfRsvpCount ?? 0} golfing, {row.receptionCount ?? 0} at the
             reception
