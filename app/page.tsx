@@ -1,12 +1,12 @@
 import { EventHead } from "./EventHead";
+import { MustacheIcon } from "./icons";
 
 export default function HomePage() {
   return (
     <main className="frame">
       <div className="card">
         <div className="logo">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mustache.svg" alt="" width={30} height={30} />
+          <MustacheIcon />
         </div>
         <EventHead />
         <h1>The Nick Jacobi Memorial Golf Tournament</h1>
