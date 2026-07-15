@@ -1,19 +1,8 @@
-import { EVENT_DATE } from "./cadence";
+import { formatEventDate } from "./cadence";
 
 export interface EmailContent {
   subject: string;
   html: string;
-}
-
-function formattedEventDate(): string {
-  const [y, m, d] = EVENT_DATE.split("-").map(Number) as [number, number, number];
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  });
 }
 
 function wrap(bodyHtml: string): string {
@@ -21,7 +10,7 @@ function wrap(bodyHtml: string): string {
 }
 
 export function initialInviteEmail(params: { name: string; rsvpLink: string; fee: number }): EmailContent {
-  const eventDate = formattedEventDate();
+  const eventDate = formatEventDate();
   return {
     subject: `You're invited: ${eventDate} Golf Tournament`,
     html: wrap(`
@@ -40,7 +29,7 @@ export function initialInviteEmail(params: { name: string; rsvpLink: string; fee
 }
 
 export function reminderFirstEmail(params: { name: string; rsvpLink: string }): EmailContent {
-  const eventDate = formattedEventDate();
+  const eventDate = formatEventDate();
   return {
     subject: `Still time to RSVP: ${eventDate} Golf Tournament`,
     html: wrap(`
@@ -53,7 +42,7 @@ export function reminderFirstEmail(params: { name: string; rsvpLink: string }): 
 }
 
 export function reminderSecondEmail(params: { name: string; rsvpLink: string }): EmailContent {
-  const eventDate = formattedEventDate();
+  const eventDate = formatEventDate();
   return {
     subject: `RSVP reminder: ${eventDate} Golf Tournament`,
     html: wrap(`
@@ -65,7 +54,7 @@ export function reminderSecondEmail(params: { name: string; rsvpLink: string }):
 }
 
 export function reminderOngoingEmail(params: { name: string; rsvpLink: string }): EmailContent {
-  const eventDate = formattedEventDate();
+  const eventDate = formatEventDate();
   return {
     subject: `RSVP reminder: ${eventDate} Golf Tournament`,
     html: wrap(`
@@ -78,7 +67,7 @@ export function reminderOngoingEmail(params: { name: string; rsvpLink: string })
 }
 
 export function reminderFinalCallEmail(params: { name: string; rsvpLink: string }): EmailContent {
-  const eventDate = formattedEventDate();
+  const eventDate = formatEventDate();
   return {
     subject: `Last call: RSVP for ${eventDate} — this week!`,
     html: wrap(`
@@ -95,7 +84,7 @@ export function confirmationPaidEmail(params: {
   golferCount: number;
   receptionCount: number;
 }): EmailContent {
-  const eventDate = formattedEventDate();
+  const eventDate = formatEventDate();
   return {
     subject: `You're confirmed: ${params.golferCount} golfer(s) + ${params.receptionCount} at the reception, ${eventDate} (paid)`,
     html: wrap(`
@@ -111,7 +100,7 @@ export function confirmationFreeEmail(params: {
   rsvpLink: string;
   receptionCount: number;
 }): EmailContent {
-  const eventDate = formattedEventDate();
+  const eventDate = formatEventDate();
   const body =
     params.receptionCount > 0
       ? "You're on the list for the reception — no payment needed, just show up."

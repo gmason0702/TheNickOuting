@@ -7,6 +7,17 @@ export const TIER_INTERVAL_DAYS = 14;
 export const EVENT_DATE = "2026-10-02";
 export const FINAL_CALL_WINDOW_DAYS = 10;
 
+export function formatEventDate(): string {
+  const [y, m, d] = EVENT_DATE.split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export const REMINDER_FIRST_DELAY_DAYS = 14;
 export const REMINDER_SECOND_DELAY_DAYS = 14;
 export const REMINDER_FLOOR_DELAY_DAYS = 4;
