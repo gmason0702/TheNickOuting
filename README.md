@@ -31,6 +31,7 @@ npm run dev
 | `EMAIL_FROM` | From-header (defaults to the tournament's `mail.thenickouting.com` address) |
 | `SITE_URL` | Public site origin, used to build RSVP links |
 | `CRON_SECRET` | Optional bearer token the cron route requires when set |
+| `AUTOMATED_SENDING_ENABLED` | Must be the literal string `true` or the daily cron is a no-op. **Defaults to disabled** — leave unset until PayPal, Resend, and everything else is verified end-to-end, since once enabled it will email every eligible real invitee in the Sheet automatically. |
 
 ## Manual steps outside this codebase
 

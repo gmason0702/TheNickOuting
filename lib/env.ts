@@ -53,4 +53,7 @@ export const env = {
   get cronSecret() {
     return process.env.CRON_SECRET;
   },
+  get automatedSendingEnabled() {
+    return process.env.AUTOMATED_SENDING_ENABLED === "true";
+  },
 };

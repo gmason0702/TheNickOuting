@@ -38,6 +38,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  if (!env.automatedSendingEnabled) {
+    return NextResponse.json({ disabled: true, invitesSent: 0, remindersSent: 0, errors: [] });
+  }
+
   const today = todayString();
   const rows = await sheets.getAllRows();
 

@@ -47,11 +47,13 @@ beforeEach(() => {
   sendEmail.mockResolvedValue(undefined);
   updateInviteSent.mockResolvedValue(undefined);
   updateReminder.mockResolvedValue(undefined);
+  process.env.AUTOMATED_SENDING_ENABLED = "true";
 });
 
 afterEach(() => {
   vi.useRealTimers();
   delete process.env.CRON_SECRET;
+  delete process.env.AUTOMATED_SENDING_ENABLED;
 });
 
 describe("daily cron route", () => {
@@ -70,6 +72,32 @@ describe("daily cron route", () => {
 
     const res = await GET(makeRequest({ authorization: "Bearer shh" }));
     expect(res.status).toBe(200);
+  });
+
+  it("is a no-op by default (AUTOMATED_SENDING_ENABLED unset) even with eligible rows", async () => {
+    delete process.env.AUTOMATED_SENDING_ENABLED;
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-15T00:00:00Z"));
+    getAllRows.mockResolvedValue([row({ golfInviteTier: 1 })]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body).toEqual({ disabled: true, invitesSent: 0, remindersSent: 0, errors: [] });
+    expect(getAllRows).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("stays a no-op when AUTOMATED_SENDING_ENABLED is set to something other than the literal string 'true'", async () => {
+    process.env.AUTOMATED_SENDING_ENABLED = "1";
+    getAllRows.mockResolvedValue([row({ golfInviteTier: 1 })]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(body.disabled).toBe(true);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 
   it("sends a tier's initial invite once its date arrives and skips a blank-tier row", async () => {
