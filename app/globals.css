@@ -97,6 +97,23 @@ body {
   flex-shrink: 0;
 }
 
+.logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+.logo img {
+  width: 30px;
+  height: 30px;
+}
+
 .head {
   display: flex;
   align-items: center;
