@@ -361,10 +361,38 @@ p.lede {
   color: var(--muted);
 }
 
-.calendar-links-row {
+.calendar-cards {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
+  gap: 10px;
+}
+
+.calendar-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.calendar-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-card-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.calendar-card-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .alert {
