@@ -1,5 +1,6 @@
 "use server";
 
+import { MAX_GOLFERS } from "@/lib/capacity";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
 import * as paypal from "@/lib/paypal";
@@ -30,9 +31,22 @@ export async function submitRsvp(
   if (!isNonNegativeInteger(golferCount) || !isNonNegativeInteger(receptionCount)) {
     throw new Error("Headcounts must be non-negative integers");
   }
+  if (golferCount > 1) {
+    throw new Error("Only one golf ticket is allowed per email.");
+  }
 
   const row = await sheets.findRowByToken(token);
   if (!row) return { status: "not-found" };
+
+  // Only block *new* golfers -- someone who's already golfing keeps their
+  // spot on resubmission even if the field has since filled up around them.
+  const isAddingNewGolfer = golferCount > 0 && (row.golfRsvpCount ?? 0) === 0;
+  if (isAddingNewGolfer) {
+    const totalGolfers = await sheets.getTotalGolferCount();
+    if (totalGolfers >= MAX_GOLFERS) {
+      throw new Error("Golf is at maximum capacity — you can still RSVP for the reception.");
+    }
+  }
 
   // Headcounts always get written, even on a decrease -- accuracy of who's
   // actually coming takes priority. Refunds for a net decrease are handled

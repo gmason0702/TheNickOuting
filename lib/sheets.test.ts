@@ -31,6 +31,7 @@ process.env.GOOGLE_SHEET_TAB_NAME = "Invites List - golf_invite_list";
 const {
   findRowByToken,
   getAllRows,
+  getTotalGolferCount,
   updateInviteSent,
   updatePaymentStatus,
   updateReminder,
@@ -176,6 +177,27 @@ describe("findRowByToken", () => {
   it("returns null for a malformed/empty token without matching a blank-token row", async () => {
     valuesGet.mockResolvedValue({ data: { values: [sheetRow({ rsvp_token: "" })] } });
     expect(await findRowByToken("")).toBeNull();
+  });
+});
+
+describe("getTotalGolferCount", () => {
+  it("sums golf_rsvp_count across all rows, treating blanks as zero", async () => {
+    valuesGet.mockResolvedValue({
+      data: {
+        values: [
+          sheetRow({ golf_rsvp_count: "1" }),
+          sheetRow({ golf_rsvp_count: "" }),
+          sheetRow({ golf_rsvp_count: "1", rsvp_token: "tok2" }),
+        ],
+      },
+    });
+
+    expect(await getTotalGolferCount()).toBe(2);
+  });
+
+  it("is 0 when there are no rows", async () => {
+    valuesGet.mockResolvedValue({ data: { values: [] } });
+    expect(await getTotalGolferCount()).toBe(0);
   });
 });
 

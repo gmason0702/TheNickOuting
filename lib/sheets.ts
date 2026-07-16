@@ -80,6 +80,11 @@ export async function findRowByToken(token: string): Promise<InviteRow | null> {
   return rows.find((r) => r.rsvpToken !== "" && r.rsvpToken === token) ?? null;
 }
 
+export async function getTotalGolferCount(): Promise<number> {
+  const rows = await getAllRows();
+  return rows.reduce((sum, r) => sum + (r.golfRsvpCount ?? 0), 0);
+}
+
 export async function updateRsvpCounts(
   rowNumber: number,
   golferCount: number,
