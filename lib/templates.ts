@@ -102,15 +102,18 @@ export function confirmationPaidEmail(params: {
 
 export function confirmationPaymentPendingEmail(params: {
   name: string;
+  rsvpLink: string;
   golferCount: number;
   receptionCount: number;
+  amountDue: number;
 }): EmailContent {
   const eventDate = formatEventDate();
   return {
     subject: `You're on the list for ${eventDate} — payment coming soon`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>You're confirmed for ${params.golferCount} golfer(s) and ${params.receptionCount} at the reception on ${eventDate}. Payment collection isn't set up yet — we'll follow up separately with how to pay once it's ready. No action needed from you right now.</p>
+      <p>You're confirmed for ${params.golferCount} golfer(s) and ${params.receptionCount} at the reception on ${eventDate} — you owe $${params.amountDue.toFixed(2)}. Payment collection isn't set up yet — we'll follow up separately with how to pay once it's ready. No action needed from you right now.</p>
+      <p>Plans change? Revisit your link any time to update your headcounts: <a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
       <p>See you on the course!</p>
     `),
   };
@@ -119,18 +122,23 @@ export function confirmationPaymentPendingEmail(params: {
 export function confirmationFreeEmail(params: {
   name: string;
   rsvpLink: string;
+  golferCount: number;
   receptionCount: number;
+  refundNote: boolean;
 }): EmailContent {
   const eventDate = formatEventDate();
-  const body =
-    params.receptionCount > 0
-      ? "You're on the list for the reception — no payment needed, just show up."
-      : "You're marked as not attending this year.";
+  const isDecline = params.golferCount === 0 && params.receptionCount === 0;
+  const body = isDecline
+    ? "You're marked as not attending this year."
+    : `You're confirmed for ${params.golferCount} golfer(s) and ${params.receptionCount} at the reception — no additional payment is due.`;
+  const refundLine = params.refundNote
+    ? " Since this is less than what you'd already paid, any refund will need to be coordinated with us directly — just reply to this email."
+    : "";
   return {
     subject: `You're confirmed for ${eventDate}`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>Thanks for letting us know! ${body} If your plans change, just use your link again:</p>
+      <p>Thanks for letting us know! ${body}${refundLine} If your plans change, just use your link again:</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
     `),
   };

@@ -9,8 +9,13 @@ import { confirmationFreeEmail, confirmationPaymentPendingEmail } from "@/lib/te
 
 export type SubmitRsvpResult =
   | { status: "not-found" }
-  | { status: "confirmed"; golferCount: number; receptionCount: number }
-  | { status: "confirmed-payment-pending"; golferCount: number; receptionCount: number }
+  | { status: "confirmed"; golferCount: number; receptionCount: number; refundNote: boolean }
+  | {
+      status: "confirmed-payment-pending";
+      golferCount: number;
+      receptionCount: number;
+      amountDue: number;
+    }
   | { status: "redirect"; approveUrl: string };
 
 function isNonNegativeInteger(value: number): boolean {
@@ -29,30 +34,48 @@ export async function submitRsvp(
   const row = await sheets.findRowByToken(token);
   if (!row) return { status: "not-found" };
 
+  // Headcounts always get written, even on a decrease -- accuracy of who's
+  // actually coming takes priority. Refunds for a net decrease are handled
+  // manually, outside this app; only a net increase triggers a new charge,
+  // and only for the difference against what's already been paid.
   await sheets.updateRsvpCounts(row.rowNumber, golferCount, receptionCount);
 
   const total = calculateTotal(golferCount, receptionCount, env.perGolferFee, env.perReceptionFee);
+  const alreadyPaid = row.paymentStatus === "paid" ? row.paymentAmount ?? 0 : 0;
+  const amountDue = total - alreadyPaid;
   const rsvpLink = `${env.siteUrl}/rsvp/${token}`;
 
-  if (total === 0) {
+  if (amountDue <= 0) {
     await sendEmail(
       row.email,
-      confirmationFreeEmail({ name: row.name, rsvpLink, receptionCount }),
+      confirmationFreeEmail({
+        name: row.name,
+        rsvpLink,
+        golferCount,
+        receptionCount,
+        refundNote: amountDue < 0,
+      }),
     );
-    return { status: "confirmed", golferCount, receptionCount };
+    return { status: "confirmed", golferCount, receptionCount, refundNote: amountDue < 0 };
   }
 
   if (!env.paypalEnabled) {
     await sendEmail(
       row.email,
-      confirmationPaymentPendingEmail({ name: row.name, golferCount, receptionCount }),
+      confirmationPaymentPendingEmail({
+        name: row.name,
+        rsvpLink,
+        golferCount,
+        receptionCount,
+        amountDue,
+      }),
     );
-    return { status: "confirmed-payment-pending", golferCount, receptionCount };
+    return { status: "confirmed-payment-pending", golferCount, receptionCount, amountDue };
   }
 
   const order = await paypal.createOrder({
     token,
-    amount: total,
+    amount: amountDue,
     returnUrl: `${env.siteUrl}/rsvp/${token}/confirmed`,
     cancelUrl: `${env.siteUrl}/rsvp/${token}`,
   });

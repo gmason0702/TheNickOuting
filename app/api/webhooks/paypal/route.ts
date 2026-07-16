@@ -54,9 +54,11 @@ export async function POST(request: NextRequest) {
     ? (await paypal.captureOrder(orderId)).amount
     : parseFloat(event.resource.amount.value);
 
+  const previouslyPaid = row.paymentStatus === "paid" ? row.paymentAmount ?? 0 : 0;
+
   await sheets.updatePaymentStatus(row.rowNumber, {
     paymentStatus: "paid",
-    paymentAmount: amount,
+    paymentAmount: previouslyPaid + amount,
     paidAt: new Date().toISOString(),
     paypalOrderId: orderId,
   });

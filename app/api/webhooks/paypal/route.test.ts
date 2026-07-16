@@ -153,6 +153,32 @@ describe("PayPal webhook route", () => {
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
+  it("adds a top-up payment to the running total instead of overwriting it, for a new order on an already-paid row", async () => {
+    verifyWebhookSignature.mockResolvedValue(true);
+    findRowByToken.mockResolvedValue(
+      row({ paymentStatus: "paid", paymentAmount: 100, paypalOrderId: "ORDER1" }),
+    );
+    updatePaymentStatus.mockResolvedValue(undefined);
+
+    const res = await POST(
+      makeRequest({
+        event_type: "PAYMENT.CAPTURE.COMPLETED",
+        resource: {
+          custom_id: "tok-frist",
+          amount: { value: "50.00" },
+          supplementary_data: { related_ids: { order_id: "ORDER2" } },
+        },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(updatePaymentStatus).toHaveBeenCalledWith(
+      9,
+      expect.objectContaining({ paymentStatus: "paid", paymentAmount: 150, paypalOrderId: "ORDER2" }),
+    );
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+
   it("returns 404 for a webhook whose token doesn't match any row", async () => {
     verifyWebhookSignature.mockResolvedValue(true);
     findRowByToken.mockResolvedValue(null);

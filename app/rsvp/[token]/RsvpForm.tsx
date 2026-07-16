@@ -17,6 +17,8 @@ interface ConfirmedState {
   golferCount: number;
   receptionCount: number;
   paymentPending: boolean;
+  amountDue: number;
+  refundNote: boolean;
 }
 
 export function RsvpForm({
@@ -47,12 +49,16 @@ export function RsvpForm({
           golferCount: result.golferCount,
           receptionCount: result.receptionCount,
           paymentPending: false,
+          amountDue: 0,
+          refundNote: result.refundNote,
         });
       } else if (result.status === "confirmed-payment-pending") {
         setConfirmed({
           golferCount: result.golferCount,
           receptionCount: result.receptionCount,
           paymentPending: true,
+          amountDue: result.amountDue,
+          refundNote: false,
         });
       } else {
         setError("This link isn't valid.");
@@ -71,14 +77,17 @@ export function RsvpForm({
     let body: string;
     if (confirmed.paymentPending) {
       headline = `You're confirmed — ${confirmed.golferCount} golfing, ${confirmed.receptionCount} at the reception`;
-      body =
-        "Payment collection isn't set up yet — we'll follow up separately once it's ready. No action needed from you right now.";
+      body = `You owe $${confirmed.amountDue.toFixed(2)} — payment collection isn't set up yet, we'll follow up separately once it's ready. No action needed from you right now.`;
     } else if (isDecline) {
       headline = "Thanks for letting us know";
       body = "You're marked as not attending this year.";
     } else {
-      headline = `You're on the list — ${confirmed.receptionCount} at the reception`;
-      body = "No payment needed for the reception — just show up.";
+      headline = `You're confirmed — ${confirmed.golferCount} golfing, ${confirmed.receptionCount} at the reception`;
+      body = "No additional payment is due.";
+    }
+    if (confirmed.refundNote) {
+      body +=
+        " Since this is less than what you'd already paid, any refund will need to be coordinated with us directly.";
     }
 
     return (

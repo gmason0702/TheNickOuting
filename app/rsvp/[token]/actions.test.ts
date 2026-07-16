@@ -75,7 +75,12 @@ describe("submitRsvp", () => {
     expect(createOrder).not.toHaveBeenCalled();
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
-    expect(result).toEqual({ status: "confirmed", golferCount: 0, receptionCount: 0 });
+    expect(result).toEqual({
+      status: "confirmed",
+      golferCount: 0,
+      receptionCount: 0,
+      refundNote: false,
+    });
   });
 
   it.each([
@@ -113,7 +118,7 @@ describe("submitRsvp", () => {
     expect(result).toEqual({ status: "redirect", approveUrl: "https://paypal/approve/ORDER2" });
   });
 
-  it("softly fails past PayPal when PAYPAL_ENABLED=false, writing counts and sending a payment-pending email instead", async () => {
+  it("softly fails past PayPal when PAYPAL_ENABLED=false, writing counts and sending a payment-pending email for the full amount owed", async () => {
     process.env.PAYPAL_ENABLED = "false";
     findRowByToken.mockResolvedValue(row());
 
@@ -123,7 +128,12 @@ describe("submitRsvp", () => {
     expect(createOrder).not.toHaveBeenCalled();
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
-    expect(result).toEqual({ status: "confirmed-payment-pending", golferCount: 2, receptionCount: 4 });
+    expect(result).toEqual({
+      status: "confirmed-payment-pending",
+      golferCount: 2,
+      receptionCount: 4,
+      amountDue: 140,
+    });
   });
 
   it("PAYPAL_ENABLED=false does not affect the true decline (0/0), which is already free", async () => {
@@ -133,6 +143,74 @@ describe("submitRsvp", () => {
     const result = await submitRsvp("tok-abc", 0, 0);
 
     expect(sendEmail).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ status: "confirmed", golferCount: 0, receptionCount: 0 });
+    expect(result).toEqual({
+      status: "confirmed",
+      golferCount: 0,
+      receptionCount: 0,
+      refundNote: false,
+    });
+  });
+
+  describe("resubmitting after already paying (no refunds; only net increases are charged)", () => {
+    it("allows decreasing below what was already paid, writes the lower counts, and flags a refund note instead of charging anything", async () => {
+      // Already paid $150 for 3 golfers; now dropping to 1 golfer + 0 reception ($50 owed).
+      findRowByToken.mockResolvedValue(row({ paymentStatus: "paid", paymentAmount: 150 }));
+
+      const result = await submitRsvp("tok-abc", 1, 0);
+
+      expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 0);
+      expect(createOrder).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        status: "confirmed",
+        golferCount: 1,
+        receptionCount: 0,
+        refundNote: true,
+      });
+    });
+
+    it("charges only the incremental difference when increasing after already paying, not the full new total", async () => {
+      // Already paid $100 for 2 golfers; now bumping to 3 golfers ($150 total) -- should owe just $50 more.
+      findRowByToken.mockResolvedValue(row({ paymentStatus: "paid", paymentAmount: 100 }));
+      createOrder.mockResolvedValue({ orderId: "ORDER3", approveUrl: "https://paypal/approve/ORDER3" });
+
+      const result = await submitRsvp("tok-abc", 3, 0);
+
+      expect(createOrder).toHaveBeenCalledWith({
+        token: "tok-abc",
+        amount: 50,
+        returnUrl: "https://thenickouting.com/rsvp/tok-abc/confirmed",
+        cancelUrl: "https://thenickouting.com/rsvp/tok-abc",
+      });
+      expect(result).toEqual({ status: "redirect", approveUrl: "https://paypal/approve/ORDER3" });
+    });
+
+    it("resubmitting the exact same counts after paying owes nothing further and carries no refund note", async () => {
+      findRowByToken.mockResolvedValue(row({ paymentStatus: "paid", paymentAmount: 100 }));
+
+      const result = await submitRsvp("tok-abc", 2, 0);
+
+      expect(createOrder).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        status: "confirmed",
+        golferCount: 2,
+        receptionCount: 0,
+        refundNote: false,
+      });
+    });
+
+    it("PAYPAL_ENABLED=false still charges only the incremental difference for an already-paid row", async () => {
+      process.env.PAYPAL_ENABLED = "false";
+      findRowByToken.mockResolvedValue(row({ paymentStatus: "paid", paymentAmount: 100 }));
+
+      const result = await submitRsvp("tok-abc", 3, 0);
+
+      expect(createOrder).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        status: "confirmed-payment-pending",
+        golferCount: 3,
+        receptionCount: 0,
+        amountDue: 50,
+      });
+    });
   });
 });
