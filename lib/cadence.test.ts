@@ -1,11 +1,31 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatClockTime,
   isFullyResponded,
   shouldSendInitialInvite,
   shouldSendReminder,
   tierSendDate,
 } from "./cadence";
 import type { InviteRow } from "./types";
+
+describe("formatClockTime", () => {
+  it("formats an afternoon on-the-hour time", () => {
+    expect(formatClockTime("14:00")).toBe("2pm");
+  });
+
+  it("formats a time with minutes", () => {
+    expect(formatClockTime("18:30")).toBe("6:30pm");
+  });
+
+  it("formats noon and midnight correctly", () => {
+    expect(formatClockTime("12:00")).toBe("12pm");
+    expect(formatClockTime("00:00")).toBe("12am");
+  });
+
+  it("formats a morning time", () => {
+    expect(formatClockTime("09:15")).toBe("9:15am");
+  });
+});
 
 function row(overrides: Partial<InviteRow> = {}): InviteRow {
   return {

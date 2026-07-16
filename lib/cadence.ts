@@ -7,6 +7,16 @@ export const TIER_INTERVAL_DAYS = 14;
 export const EVENT_DATE = "2026-10-02";
 export const FINAL_CALL_WINDOW_DAYS = 10;
 
+/** Wall-clock times at the venue, "HH:mm" 24-hour, paired with EVENT_TIME_ZONE below. */
+export const GOLF_START_TIME = "14:00";
+export const GOLF_END_TIME = "18:30";
+export const RECEPTION_START_TIME = "18:30";
+export const RECEPTION_END_TIME = "20:30";
+
+/** Indianapolis observes US Eastern time (with DST) under this IANA zone. */
+export const EVENT_TIME_ZONE = "America/Indiana/Indianapolis";
+export const EVENT_LOCATION = "Brendonwood Clubhouse, Indianapolis, IN 46226";
+
 export function formatEventDate(): string {
   const [y, m, d] = EVENT_DATE.split("-").map(Number) as [number, number, number];
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
@@ -16,6 +26,14 @@ export function formatEventDate(): string {
     day: "numeric",
     timeZone: "UTC",
   });
+}
+
+/** Formats a "HH:mm" 24-hour string as e.g. "2:00pm". */
+export function formatClockTime(time: string): string {
+  const [h, m] = time.split(":").map(Number) as [number, number];
+  const period = h < 12 ? "am" : "pm";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${hour12}${period}` : `${hour12}:${String(m).padStart(2, "0")}${period}`;
 }
 
 export const REMINDER_FIRST_DELAY_DAYS = 14;

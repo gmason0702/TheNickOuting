@@ -1,3 +1,4 @@
+import { CalendarLinks } from "@/app/CalendarLinks";
 import { EventHead } from "@/app/EventHead";
 import { findRowByToken } from "@/lib/sheets";
 import { NotFound } from "../../NotFound";
@@ -22,6 +23,10 @@ export default async function ConfirmedPage({
             reception
           </h1>
           <p className="lede">Payment received. A confirmation email is on its way. See you on the course!</p>
+          <CalendarLinks
+            golfing={(row.golfRsvpCount ?? 0) > 0}
+            reception={(row.receptionCount ?? 0) > 0}
+          />
         </div>
       </main>
     );

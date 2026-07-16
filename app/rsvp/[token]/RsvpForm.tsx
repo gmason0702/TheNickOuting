@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarLinks } from "@/app/CalendarLinks";
 import { EventHead } from "@/app/EventHead";
+import { MAX_GOLFERS, golferCapacityStatus } from "@/lib/capacity";
 import { submitRsvp } from "./actions";
 
 interface Props {
@@ -11,6 +13,8 @@ interface Props {
   receptionFee: number;
   initialGolferCount: number;
   initialReceptionCount: number;
+  /** Golfers already on the books across every other invite, i.e. excluding this one. */
+  othersGolferCount: number;
 }
 
 interface ConfirmedState {
@@ -28,12 +32,18 @@ export function RsvpForm({
   receptionFee,
   initialGolferCount,
   initialReceptionCount,
+  othersGolferCount,
 }: Props) {
-  const [golferCount, setGolferCount] = useState(initialGolferCount);
+  const [golfing, setGolfing] = useState(initialGolferCount > 0);
   const [receptionCount, setReceptionCount] = useState(initialReceptionCount);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<ConfirmedState | null>(null);
+
+  const golferCount = golfing ? 1 : 0;
+  const liveGolferTotal = othersGolferCount + golferCount;
+  const newSignupCapacity = golferCapacityStatus(othersGolferCount);
+  const golfLocked = !golfing && newSignupCapacity === "full";
 
   async function handleContinue() {
     setSubmitting(true);
@@ -63,8 +73,10 @@ export function RsvpForm({
       } else {
         setError("This link isn't valid.");
       }
-    } catch {
-      setError("Something went wrong submitting your RSVP. Please try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong submitting your RSVP. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -98,6 +110,9 @@ export function RsvpForm({
           <p className="lede">
             {body} If your plans change, just use this same link again.
           </p>
+          {!isDecline && (
+            <CalendarLinks golfing={confirmed.golferCount > 0} reception={confirmed.receptionCount > 0} />
+          )}
           <button className="link-reset" onClick={() => setConfirmed(null)}>
             ← Update headcounts
           </button>
@@ -121,25 +136,32 @@ export function RsvpForm({
             <div className="counter-body">
               <span className="counter-title">Golfing</span>
               <span className="counter-sub">${fee} per golfer — includes the round + reception</span>
+              <span className="capacity-note">
+                {liveGolferTotal}/{MAX_GOLFERS} golfers registered
+              </span>
+              {!golfing && newSignupCapacity === "almost-full" && (
+                <span className="capacity-note capacity-warning">
+                  Golf is almost full — only {MAX_GOLFERS - othersGolferCount} spot
+                  {MAX_GOLFERS - othersGolferCount === 1 ? "" : "s"} left.
+                </span>
+              )}
+              {golfLocked && (
+                <span className="capacity-note capacity-full">
+                  Golf is at maximum capacity ({MAX_GOLFERS}/{MAX_GOLFERS}).
+                </span>
+              )}
             </div>
-            <div className="stepper">
-              <button
-                className="stepper-btn"
-                onClick={() => setGolferCount((c) => Math.max(0, c - 1))}
-                disabled={golferCount === 0}
-                aria-label="Decrease golfer count"
-              >
-                −
-              </button>
-              <span className="stepper-value">{golferCount}</span>
-              <button
-                className="stepper-btn"
-                onClick={() => setGolferCount((c) => c + 1)}
-                aria-label="Increase golfer count"
-              >
-                +
-              </button>
-            </div>
+            <button
+              type="button"
+              className={`toggle ${golfing ? "toggle-on" : ""}`}
+              role="switch"
+              aria-checked={golfing}
+              aria-label="Golfing"
+              disabled={golfLocked}
+              onClick={() => setGolfing((g) => !g)}
+            >
+              <span className="toggle-thumb" />
+            </button>
           </div>
 
           <div className="counter-row">

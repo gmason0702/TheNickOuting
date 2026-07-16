@@ -1,4 +1,4 @@
-import { formatEventDate } from "@/lib/cadence";
+import { GOLF_START_TIME, RECEPTION_START_TIME, formatClockTime, formatEventDate } from "@/lib/cadence";
 import { CheckIcon, FlagIcon, GlassIcon, TheNickLogo, XIcon } from "./icons";
 
 export function Logo() {
@@ -32,7 +32,9 @@ export function EventRows({ golfing, reception }: EventRowsProps = {}) {
         </div>
         <div>
           <p className="event">Golf Tournament</p>
-          <p className="date">{eventDate} @ 3:00pm</p>
+          <p className="date">
+            {eventDate} @ {formatClockTime(GOLF_START_TIME)}
+          </p>
         </div>
         {golfing !== undefined && <StatusBadge attending={golfing} />}
       </div>
@@ -42,7 +44,9 @@ export function EventRows({ golfing, reception }: EventRowsProps = {}) {
         </div>
         <div>
           <p className="event">Reception</p>
-          <p className="date">{eventDate} @ 5:00pm</p>
+          <p className="date">
+            {eventDate} @ {formatClockTime(RECEPTION_START_TIME)}
+          </p>
         </div>
         {reception !== undefined && <StatusBadge attending={reception} />}
       </div>
