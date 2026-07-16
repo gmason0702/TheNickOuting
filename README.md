@@ -26,12 +26,14 @@ npm run dev
 | `PAYPAL_MODE` | `sandbox` (default) or `live` |
 | `PAYPAL_WEBHOOK_ID` | ID of the webhook registered for this app |
 | `PAYPAL_PAYEE_EMAIL` | PayPal email of the actual fee recipient |
-| `PER_GOLFER_FEE` | Flat per-golfer fee in USD (defaults to `85`) |
+| `PER_GOLFER_FEE` | Flat per-golfer fee in USD, includes one bundled reception seat (defaults to `50`) |
+| `PER_RECEPTION_FEE` | Per-person reception fee in USD, only billed for reception headcount beyond the number of golfers (defaults to `20`) |
 | `RESEND_API_KEY` | Resend API key |
 | `EMAIL_FROM` | From-header (defaults to the tournament's `mail.thenickouting.com` address) |
 | `SITE_URL` | Public site origin, used to build RSVP links |
 | `CRON_SECRET` | Optional bearer token the cron route requires when set |
 | `AUTOMATED_SENDING_ENABLED` | Must be the literal string `true` or the daily cron is a no-op. **Defaults to disabled** — leave unset until PayPal, Resend, and everything else is verified end-to-end, since once enabled it will email every eligible real invitee in the Sheet automatically. |
+| `PAYPAL_ENABLED` | Set to the literal string `false` to softly bypass PayPal while it isn't set up yet — any RSVP that owes money still writes its headcounts and gets an immediate "payment coming soon" email instead of a PayPal redirect/error. **Defaults to enabled** (normal behavior); flip back once real PayPal credentials are in place. |
 
 ## Manual steps outside this codebase
 

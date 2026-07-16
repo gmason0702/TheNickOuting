@@ -8,18 +8,30 @@ interface Props {
   token: string;
   name: string;
   fee: number;
+  receptionFee: number;
   initialGolferCount: number;
   initialReceptionCount: number;
 }
 
-export function RsvpForm({ token, name, fee, initialGolferCount, initialReceptionCount }: Props) {
+interface ConfirmedState {
+  golferCount: number;
+  receptionCount: number;
+  paymentPending: boolean;
+}
+
+export function RsvpForm({
+  token,
+  name,
+  fee,
+  receptionFee,
+  initialGolferCount,
+  initialReceptionCount,
+}: Props) {
   const [golferCount, setGolferCount] = useState(initialGolferCount);
   const [receptionCount, setReceptionCount] = useState(initialReceptionCount);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmed, setConfirmed] = useState<{ golferCount: number; receptionCount: number } | null>(
-    null,
-  );
+  const [confirmed, setConfirmed] = useState<ConfirmedState | null>(null);
 
   async function handleContinue() {
     setSubmitting(true);
@@ -31,7 +43,17 @@ export function RsvpForm({ token, name, fee, initialGolferCount, initialReceptio
         return;
       }
       if (result.status === "confirmed") {
-        setConfirmed({ golferCount: result.golferCount, receptionCount: result.receptionCount });
+        setConfirmed({
+          golferCount: result.golferCount,
+          receptionCount: result.receptionCount,
+          paymentPending: false,
+        });
+      } else if (result.status === "confirmed-payment-pending") {
+        setConfirmed({
+          golferCount: result.golferCount,
+          receptionCount: result.receptionCount,
+          paymentPending: true,
+        });
       } else {
         setError("This link isn't valid.");
       }
@@ -44,20 +66,28 @@ export function RsvpForm({ token, name, fee, initialGolferCount, initialReceptio
 
   if (confirmed) {
     const isDecline = confirmed.golferCount === 0 && confirmed.receptionCount === 0;
+
+    let headline: string;
+    let body: string;
+    if (confirmed.paymentPending) {
+      headline = `You're confirmed — ${confirmed.golferCount} golfing, ${confirmed.receptionCount} at the reception`;
+      body =
+        "Payment collection isn't set up yet — we'll follow up separately once it's ready. No action needed from you right now.";
+    } else if (isDecline) {
+      headline = "Thanks for letting us know";
+      body = "You're marked as not attending this year.";
+    } else {
+      headline = `You're on the list — ${confirmed.receptionCount} at the reception`;
+      body = "No payment needed for the reception — just show up.";
+    }
+
     return (
       <main className="frame">
         <div className="card">
           <EventHead golfing={confirmed.golferCount > 0} reception={confirmed.receptionCount > 0} />
-          <h1>
-            {isDecline
-              ? "Thanks for letting us know"
-              : `You're on the list — ${confirmed.receptionCount} at the reception`}
-          </h1>
+          <h1>{headline}</h1>
           <p className="lede">
-            {isDecline
-              ? "You're marked as not attending this year."
-              : "No payment needed for the reception — just show up."}{" "}
-            If your plans change, just use this same link again.
+            {body} If your plans change, just use this same link again.
           </p>
           <button className="link-reset" onClick={() => setConfirmed(null)}>
             ← Update headcounts
@@ -106,7 +136,7 @@ export function RsvpForm({ token, name, fee, initialGolferCount, initialReceptio
           <div className="counter-row">
             <div className="counter-body">
               <span className="counter-title">Reception</span>
-              <span className="counter-sub">Free — total people coming to celebrate</span>
+              <span className="counter-sub">${receptionFee} per person — included free with each golfer</span>
             </div>
             <div className="stepper">
               <button

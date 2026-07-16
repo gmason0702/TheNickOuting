@@ -55,7 +55,12 @@ export async function GET(request: NextRequest) {
         const rsvpLink = `${env.siteUrl}/rsvp/${row.rsvpToken}`;
         await sendEmail(
           row.email,
-          initialInviteEmail({ name: row.name, rsvpLink, fee: env.perGolferFee }),
+          initialInviteEmail({
+            name: row.name,
+            rsvpLink,
+            golferFee: env.perGolferFee,
+            receptionFee: env.perReceptionFee,
+          }),
         );
         await sheets.updateInviteSent(row.rowNumber, today);
         invitesSent++;

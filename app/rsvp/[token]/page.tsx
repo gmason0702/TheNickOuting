@@ -18,6 +18,7 @@ export default async function RsvpPage({
       token={token}
       name={row.name}
       fee={env.perGolferFee}
+      receptionFee={env.perReceptionFee}
       initialGolferCount={row.golfRsvpCount ?? 0}
       initialReceptionCount={row.receptionCount ?? 0}
     />

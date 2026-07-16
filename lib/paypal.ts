@@ -24,8 +24,7 @@ async function getAccessToken(): Promise<string> {
 
 export interface CreateOrderParams {
   token: string;
-  golferCount: number;
-  feePerGolfer: number;
+  amount: number;
   returnUrl: string;
   cancelUrl: string;
 }
@@ -37,7 +36,7 @@ export interface CreatedOrder {
 
 export async function createOrder(params: CreateOrderParams): Promise<CreatedOrder> {
   const accessToken = await getAccessToken();
-  const total = (params.golferCount * params.feePerGolfer).toFixed(2);
+  const total = params.amount.toFixed(2);
 
   const res = await fetch(`${baseUrl()}/v2/checkout/orders`, {
     method: "POST",

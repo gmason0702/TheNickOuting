@@ -36,7 +36,11 @@ export const env = {
   },
   get perGolferFee() {
     const raw = process.env.PER_GOLFER_FEE;
-    return raw ? Number(raw) : 85;
+    return raw ? Number(raw) : 50;
+  },
+  get perReceptionFee() {
+    const raw = process.env.PER_RECEPTION_FEE;
+    return raw ? Number(raw) : 20;
   },
   get resendApiKey() {
     return required("RESEND_API_KEY");
@@ -55,5 +59,9 @@ export const env = {
   },
   get automatedSendingEnabled() {
     return process.env.AUTOMATED_SENDING_ENABLED === "true";
+  },
+  /** Reversible toggle: set to the literal string "false" to soft-fail past PayPal while it's not set up yet. */
+  get paypalEnabled() {
+    return process.env.PAYPAL_ENABLED !== "false";
   },
 };

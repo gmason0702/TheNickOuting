@@ -7,7 +7,8 @@ process.env.PAYPAL_CLIENT_SECRET = "secret";
 process.env.PAYPAL_WEBHOOK_ID = "wh";
 process.env.PAYPAL_PAYEE_EMAIL = "payee@example.com";
 process.env.SITE_URL = "https://thenickouting.com";
-process.env.PER_GOLFER_FEE = "85";
+process.env.PER_GOLFER_FEE = "50";
+process.env.PER_RECEPTION_FEE = "20";
 
 const findRowByToken = vi.fn();
 const updateRsvpCounts = vi.fn();
@@ -46,6 +47,7 @@ beforeEach(() => {
   updateRsvpCounts.mockReset();
   sendEmail.mockReset();
   createOrder.mockReset();
+  delete process.env.PAYPAL_ENABLED;
 });
 
 describe("submitRsvp", () => {
@@ -64,30 +66,26 @@ describe("submitRsvp", () => {
     expect(findRowByToken).not.toHaveBeenCalled();
   });
 
-  it.each([
-    [0, 0],
-    [0, 3],
-  ])(
-    "writes counts, sends the free confirmation, and skips PayPal for golferCount=%i receptionCount=%i",
-    async (golferCount, receptionCount) => {
-      findRowByToken.mockResolvedValue(row());
+  it("writes counts, sends the free confirmation, and skips PayPal for the true decline (0 golfers, 0 reception)", async () => {
+    findRowByToken.mockResolvedValue(row());
 
-      const result = await submitRsvp("tok-abc", golferCount, receptionCount);
+    const result = await submitRsvp("tok-abc", 0, 0);
 
-      expect(updateRsvpCounts).toHaveBeenCalledWith(7, golferCount, receptionCount);
-      expect(createOrder).not.toHaveBeenCalled();
-      expect(sendEmail).toHaveBeenCalledTimes(1);
-      expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
-      expect(result).toEqual({ status: "confirmed", golferCount, receptionCount });
-    },
-  );
+    expect(updateRsvpCounts).toHaveBeenCalledWith(7, 0, 0);
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
+    expect(result).toEqual({ status: "confirmed", golferCount: 0, receptionCount: 0 });
+  });
 
   it.each([
-    [2, 4],
-    [3, 0],
+    [0, 3, 60], // reception-only bills every seat at the standalone fee
+    [1, 1, 50], // the golfer's bundled reception seat makes this free, total is just the golfer fee
+    [1, 2, 70], // one reception seat is bundled free, the second is billed
+    [3, 0, 150], // golfer fee only, no reception attendees
   ])(
-    "creates a PayPal order and returns a redirect for golferCount=%i receptionCount=%i, sending no confirmation email yet",
-    async (golferCount, receptionCount) => {
+    "creates a PayPal order for the correct bundled total (golferCount=%i, receptionCount=%i -> $%i) and sends no confirmation email yet",
+    async (golferCount, receptionCount, expectedAmount) => {
       findRowByToken.mockResolvedValue(row());
       createOrder.mockResolvedValue({ orderId: "ORDER1", approveUrl: "https://paypal/approve/ORDER1" });
 
@@ -96,8 +94,7 @@ describe("submitRsvp", () => {
       expect(updateRsvpCounts).toHaveBeenCalledWith(7, golferCount, receptionCount);
       expect(createOrder).toHaveBeenCalledWith({
         token: "tok-abc",
-        golferCount,
-        feePerGolfer: 85,
+        amount: expectedAmount,
         returnUrl: "https://thenickouting.com/rsvp/tok-abc/confirmed",
         cancelUrl: "https://thenickouting.com/rsvp/tok-abc",
       });
@@ -114,5 +111,28 @@ describe("submitRsvp", () => {
 
     expect(createOrder).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: "redirect", approveUrl: "https://paypal/approve/ORDER2" });
+  });
+
+  it("softly fails past PayPal when PAYPAL_ENABLED=false, writing counts and sending a payment-pending email instead", async () => {
+    process.env.PAYPAL_ENABLED = "false";
+    findRowByToken.mockResolvedValue(row());
+
+    const result = await submitRsvp("tok-abc", 2, 4);
+
+    expect(updateRsvpCounts).toHaveBeenCalledWith(7, 2, 4);
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
+    expect(result).toEqual({ status: "confirmed-payment-pending", golferCount: 2, receptionCount: 4 });
+  });
+
+  it("PAYPAL_ENABLED=false does not affect the true decline (0/0), which is already free", async () => {
+    process.env.PAYPAL_ENABLED = "false";
+    findRowByToken.mockResolvedValue(row());
+
+    const result = await submitRsvp("tok-abc", 0, 0);
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ status: "confirmed", golferCount: 0, receptionCount: 0 });
   });
 });

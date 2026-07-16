@@ -25,7 +25,7 @@ function mockAuthThen(...responses: Response[]) {
 }
 
 describe("createOrder", () => {
-  it("creates an order for golferCount x fee and returns the approve link", async () => {
+  it("creates an order for the given amount and returns the approve link", async () => {
     mockAuthThen(
       jsonResponse({
         id: "ORDER1",
@@ -38,8 +38,7 @@ describe("createOrder", () => {
 
     const result = await createOrder({
       token: "tok-abc",
-      golferCount: 2,
-      feePerGolfer: 85,
+      amount: 70,
       returnUrl: "https://site/rsvp/tok-abc/confirmed",
       cancelUrl: "https://site/rsvp/tok-abc",
     });
@@ -48,7 +47,7 @@ describe("createOrder", () => {
 
     const orderCall = fetchMock.mock.calls[1];
     const body = JSON.parse(orderCall![1].body);
-    expect(body.purchase_units[0].amount.value).toBe("170.00");
+    expect(body.purchase_units[0].amount.value).toBe("70.00");
     expect(body.purchase_units[0].custom_id).toBe("tok-abc");
     expect(body.purchase_units[0].payee.email_address).toBe("payee@example.com");
   });
@@ -58,8 +57,7 @@ describe("createOrder", () => {
     await expect(
       createOrder({
         token: "tok-abc",
-        golferCount: 1,
-        feePerGolfer: 85,
+        amount: 50,
         returnUrl: "https://site/return",
         cancelUrl: "https://site/cancel",
       }),
