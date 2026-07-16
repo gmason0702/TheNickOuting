@@ -45,10 +45,15 @@ export function tierSendDate(tier: number): string {
   return addDays(TIER_BASE_DATE, (tier - 1) * TIER_INTERVAL_DAYS);
 }
 
+/**
+ * Tier 0 is a standing "send immediately, no date gate" tier for internal
+ * testers -- distinct from the numbered tiers' staggered formula.
+ */
 export function shouldSendInitialInvite(row: InviteRow, today: string): boolean {
   if (row.golfInviteTier === null) return false;
   if (row.inviteSentAt !== null) return false;
   if (isFullyResponded(row)) return false;
+  if (row.golfInviteTier === 0) return true;
   return isOnOrAfter(today, tierSendDate(row.golfInviteTier));
 }
 

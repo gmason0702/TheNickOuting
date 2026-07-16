@@ -102,6 +102,28 @@ describe("shouldSendInitialInvite", () => {
       ),
     ).toBe(false);
   });
+
+  it("tier 0 sends immediately, ignoring the staggered date formula", () => {
+    expect(shouldSendInitialInvite(row({ golfInviteTier: 0 }), "2026-07-16")).toBe(true);
+  });
+
+  it("tier 0 still skips a row that already has invite_sent_at set", () => {
+    expect(
+      shouldSendInitialInvite(
+        row({ golfInviteTier: 0, inviteSentAt: "2026-07-16" }),
+        "2026-07-16",
+      ),
+    ).toBe(false);
+  });
+
+  it("tier 0 still skips a row that has already fully responded", () => {
+    expect(
+      shouldSendInitialInvite(
+        row({ golfInviteTier: 0, receptionCount: 0, golfRsvpCount: 0 }),
+        "2026-07-16",
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("shouldSendReminder", () => {
