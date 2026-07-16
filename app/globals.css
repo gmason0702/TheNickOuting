@@ -97,8 +97,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: center;
-  color: var(--text);
+  background: #ffffff;
+  color: #1c261e;
+  margin: -32px -28px 0 -28px;
+  padding: 20px 28px;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .head {
