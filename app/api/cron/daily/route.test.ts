@@ -202,7 +202,7 @@ describe("daily cron route", () => {
         golfRsvpCount: 2,
         receptionCount: 4,
         paymentStatus: "paid",
-        paymentAmount: 140,
+        paymentAmount: 210,
       }),
     ]);
 

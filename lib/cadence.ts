@@ -10,9 +10,9 @@ export const FINAL_CALL_WINDOW_DAYS = 10;
 
 /** Wall-clock times at the venue, "HH:mm" 24-hour, paired with EVENT_TIME_ZONE below. */
 export const GOLF_START_TIME = "14:00";
-export const GOLF_END_TIME = "18:30";
-export const RECEPTION_START_TIME = "18:30";
-export const RECEPTION_END_TIME = "20:30";
+export const GOLF_END_TIME = "18:00";
+export const RECEPTION_START_TIME = "18:00";
+export const RECEPTION_END_TIME = "19:30";
 
 /** Indianapolis observes US Eastern time (with DST) under this IANA zone. */
 export const EVENT_TIME_ZONE = "America/Indiana/Indianapolis";
