@@ -36,11 +36,11 @@ export const env = {
   },
   get perGolferFee() {
     const raw = process.env.PER_GOLFER_FEE;
-    return raw ? Number(raw) : 50;
+    return raw ? Number(raw) : 75;
   },
   get perReceptionFee() {
     const raw = process.env.PER_RECEPTION_FEE;
-    return raw ? Number(raw) : 20;
+    return raw ? Number(raw) : 30;
   },
   get resendApiKey() {
     return required("RESEND_API_KEY");

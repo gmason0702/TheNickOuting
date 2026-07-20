@@ -26,8 +26,8 @@ npm run dev
 | `PAYPAL_MODE` | `sandbox` (default) or `live` |
 | `PAYPAL_WEBHOOK_ID` | ID of the webhook registered for this app |
 | `PAYPAL_PAYEE_EMAIL` | PayPal email of the actual fee recipient |
-| `PER_GOLFER_FEE` | Flat per-golfer fee in USD, includes one bundled reception seat (defaults to `50`) |
-| `PER_RECEPTION_FEE` | Per-person reception fee in USD, only billed for reception headcount beyond the number of golfers (defaults to `20`) |
+| `PER_GOLFER_FEE` | Flat per-golfer fee in USD, includes one bundled reception seat (defaults to `75`) |
+| `PER_RECEPTION_FEE` | Per-person reception fee in USD, only billed for reception headcount beyond the number of golfers (defaults to `30`) |
 | `RESEND_API_KEY` | Resend API key |
 | `EMAIL_FROM` | From-header (defaults to the tournament's `mail.thenickouting.com` address) |
 | `SITE_URL` | Public site origin, used to build RSVP links |
