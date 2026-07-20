@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { shouldSendInitialInvite, shouldSendReminder } from "@/lib/cadence";
+import { shouldSendInitialInvite, shouldSendPaymentRequest, shouldSendReminder } from "@/lib/cadence";
 import { sendEmail } from "@/lib/email";
 import { env } from "@/lib/env";
 import * as sheets from "@/lib/sheets";
 import {
   initialInviteEmail,
+  paymentRequestEmail,
   reminderFinalCallEmail,
   reminderFirstEmail,
   reminderOngoingEmail,
@@ -39,7 +40,13 @@ export async function GET(request: NextRequest) {
   }
 
   if (!env.automatedSendingEnabled) {
-    return NextResponse.json({ disabled: true, invitesSent: 0, remindersSent: 0, errors: [] });
+    return NextResponse.json({
+      disabled: true,
+      invitesSent: 0,
+      remindersSent: 0,
+      paymentRequestsSent: 0,
+      errors: [],
+    });
   }
 
   const today = todayString();
@@ -47,6 +54,7 @@ export async function GET(request: NextRequest) {
 
   let invitesSent = 0;
   let remindersSent = 0;
+  let paymentRequestsSent = 0;
   const errors: string[] = [];
 
   for (const row of rows) {
@@ -75,10 +83,33 @@ export async function GET(request: NextRequest) {
         });
         remindersSent++;
       }
+
+      if (env.paypalEnabled) {
+        const paymentRequestDecision = shouldSendPaymentRequest(
+          row,
+          env.perGolferFee,
+          env.perReceptionFee,
+        );
+        if (paymentRequestDecision.send) {
+          const rsvpLink = `${env.siteUrl}/rsvp/${row.rsvpToken}`;
+          await sendEmail(
+            row.email,
+            paymentRequestEmail({
+              name: row.name,
+              rsvpLink,
+              golferCount: row.golfRsvpCount ?? 0,
+              receptionCount: row.receptionCount ?? 0,
+              amountDue: paymentRequestDecision.amountDue,
+            }),
+          );
+          await sheets.updatePaymentRequestSent(row.rowNumber, today);
+          paymentRequestsSent++;
+        }
+      }
     } catch (err) {
       errors.push(`row ${row.rowNumber}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  return NextResponse.json({ today, invitesSent, remindersSent, errors });
+  return NextResponse.json({ today, invitesSent, remindersSent, paymentRequestsSent, errors });
 }

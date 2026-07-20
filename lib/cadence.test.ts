@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   formatClockTime,
-  isFullyResponded,
+  hasResponded,
   shouldSendInitialInvite,
+  shouldSendPaymentRequest,
   shouldSendReminder,
   tierSendDate,
 } from "./cadence";
@@ -43,32 +44,30 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     inviteSentAt: null,
     lastReminderSentAt: null,
     reminderCount: 0,
+    paymentRequestSentAt: null,
     ...overrides,
   };
 }
 
-describe("isFullyResponded", () => {
+describe("hasResponded", () => {
   it("is false when reception count is blank", () => {
-    expect(isFullyResponded(row({ receptionCount: null, golfRsvpCount: 0 }))).toBe(false);
+    expect(hasResponded(row({ receptionCount: null, golfRsvpCount: 0 }))).toBe(false);
   });
 
   it("is true for 0 golfers and a non-blank reception count", () => {
-    expect(isFullyResponded(row({ receptionCount: 3, golfRsvpCount: 0 }))).toBe(true);
+    expect(hasResponded(row({ receptionCount: 3, golfRsvpCount: 0 }))).toBe(true);
   });
 
   it("is true for 0/0 (declined everything)", () => {
-    expect(isFullyResponded(row({ receptionCount: 0, golfRsvpCount: 0 }))).toBe(true);
+    expect(hasResponded(row({ receptionCount: 0, golfRsvpCount: 0 }))).toBe(true);
   });
 
-  it("is false when golfers > 0 but unpaid", () => {
+  it("is true when golfers > 0, regardless of payment status -- responding and paying are separate concerns", () => {
     expect(
-      isFullyResponded(row({ receptionCount: 4, golfRsvpCount: 2, paymentStatus: "unpaid" })),
-    ).toBe(false);
-  });
-
-  it("is true when golfers > 0 and paid", () => {
+      hasResponded(row({ receptionCount: 4, golfRsvpCount: 2, paymentStatus: "unpaid" })),
+    ).toBe(true);
     expect(
-      isFullyResponded(row({ receptionCount: 4, golfRsvpCount: 2, paymentStatus: "paid" })),
+      hasResponded(row({ receptionCount: 4, golfRsvpCount: 2, paymentStatus: "paid" })),
     ).toBe(true);
   });
 });
@@ -225,7 +224,7 @@ describe("shouldSendReminder", () => {
     ).toEqual({ send: true, stage: "final-call" });
   });
 
-  it("keeps reminding an unpaid golfer at the normal cadence instead of going silent", () => {
+  it("stops reminding a golfer the moment they respond, even unpaid -- the payment-request email takes over from there", () => {
     expect(
       shouldSendReminder(
         row({
@@ -238,10 +237,10 @@ describe("shouldSendReminder", () => {
         }),
         "2026-09-02",
       ),
-    ).toEqual({ send: true, stage: "ongoing" });
+    ).toEqual({ send: false });
   });
 
-  it("stops immediately once a row becomes fully responded, even mid-cadence", () => {
+  it("stops immediately once a row responds, even mid-cadence and even if paid", () => {
     expect(
       shouldSendReminder(
         row({
@@ -255,5 +254,65 @@ describe("shouldSendReminder", () => {
         "2026-09-02",
       ),
     ).toEqual({ send: false });
+  });
+});
+
+describe("shouldSendPaymentRequest", () => {
+  it("does not send if they haven't responded yet", () => {
+    expect(shouldSendPaymentRequest(row({ receptionCount: null }), 50, 20)).toEqual({
+      send: false,
+    });
+  });
+
+  it("does not send if already sent", () => {
+    expect(
+      shouldSendPaymentRequest(
+        row({ golfRsvpCount: 1, receptionCount: 1, paymentRequestSentAt: "2026-08-20" }),
+        50,
+        20,
+      ),
+    ).toEqual({ send: false });
+  });
+
+  it("does not send when nothing is owed (declined everything)", () => {
+    expect(
+      shouldSendPaymentRequest(row({ golfRsvpCount: 0, receptionCount: 0 }), 50, 20),
+    ).toEqual({ send: false });
+  });
+
+  it("does not send once fully paid", () => {
+    expect(
+      shouldSendPaymentRequest(
+        row({
+          golfRsvpCount: 1,
+          receptionCount: 1,
+          paymentStatus: "paid",
+          paymentAmount: 50,
+        }),
+        50,
+        20,
+      ),
+    ).toEqual({ send: false });
+  });
+
+  it("sends with the correct amount due for an unpaid balance", () => {
+    expect(
+      shouldSendPaymentRequest(row({ golfRsvpCount: 1, receptionCount: 2 }), 50, 20),
+    ).toEqual({ send: true, amountDue: 70 });
+  });
+
+  it("sends the remaining balance when previously paid less than the current total", () => {
+    expect(
+      shouldSendPaymentRequest(
+        row({
+          golfRsvpCount: 3,
+          receptionCount: 0,
+          paymentStatus: "paid",
+          paymentAmount: 100,
+        }),
+        50,
+        20,
+      ),
+    ).toEqual({ send: true, amountDue: 50 });
   });
 });

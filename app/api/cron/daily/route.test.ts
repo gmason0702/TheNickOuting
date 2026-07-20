@@ -5,7 +5,13 @@ import type { InviteRow } from "@/lib/types";
 const getAllRows = vi.fn();
 const updateInviteSent = vi.fn();
 const updateReminder = vi.fn();
-vi.mock("@/lib/sheets", () => ({ getAllRows, updateInviteSent, updateReminder }));
+const updatePaymentRequestSent = vi.fn();
+vi.mock("@/lib/sheets", () => ({
+  getAllRows,
+  updateInviteSent,
+  updateReminder,
+  updatePaymentRequestSent,
+}));
 
 const sendEmail = vi.fn();
 vi.mock("@/lib/email", () => ({ sendEmail }));
@@ -28,6 +34,7 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     inviteSentAt: null,
     lastReminderSentAt: null,
     reminderCount: 0,
+    paymentRequestSentAt: null,
     ...overrides,
   };
 }
@@ -43,10 +50,12 @@ beforeEach(() => {
   getAllRows.mockReset();
   updateInviteSent.mockReset();
   updateReminder.mockReset();
+  updatePaymentRequestSent.mockReset();
   sendEmail.mockReset();
   sendEmail.mockResolvedValue(undefined);
   updateInviteSent.mockResolvedValue(undefined);
   updateReminder.mockResolvedValue(undefined);
+  updatePaymentRequestSent.mockResolvedValue(undefined);
   process.env.AUTOMATED_SENDING_ENABLED = "true";
 });
 
@@ -54,6 +63,7 @@ afterEach(() => {
   vi.useRealTimers();
   delete process.env.CRON_SECRET;
   delete process.env.AUTOMATED_SENDING_ENABLED;
+  delete process.env.PAYPAL_ENABLED;
 });
 
 describe("daily cron route", () => {
@@ -84,7 +94,13 @@ describe("daily cron route", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ disabled: true, invitesSent: 0, remindersSent: 0, errors: [] });
+    expect(body).toEqual({
+      disabled: true,
+      invitesSent: 0,
+      remindersSent: 0,
+      paymentRequestsSent: 0,
+      errors: [],
+    });
     expect(getAllRows).not.toHaveBeenCalled();
     expect(sendEmail).not.toHaveBeenCalled();
   });
@@ -150,7 +166,7 @@ describe("daily cron route", () => {
     });
   });
 
-  it("keeps reminding a golfer who entered a count but never paid, at the normal cadence", async () => {
+  it("stops RSVP reminders for a golfer who entered a count but never paid -- the payment-request email takes over instead", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
 
@@ -168,11 +184,13 @@ describe("daily cron route", () => {
     const res = await GET(makeRequest());
     const body = await res.json();
 
-    expect(body.remindersSent).toBe(1);
+    expect(body.remindersSent).toBe(0);
+    // PAYPAL_ENABLED defaults on, so the same run's payment-request check fires instead.
+    expect(body.paymentRequestsSent).toBe(1);
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
-  it("stops reminding a row on the very next run once it becomes fully responded", async () => {
+  it("stops reminding a row on the very next run once it becomes fully responded and paid", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
 
@@ -184,6 +202,7 @@ describe("daily cron route", () => {
         golfRsvpCount: 2,
         receptionCount: 4,
         paymentStatus: "paid",
+        paymentAmount: 140,
       }),
     ]);
 
@@ -191,6 +210,7 @@ describe("daily cron route", () => {
     const body = await res.json();
 
     expect(body.remindersSent).toBe(0);
+    expect(body.paymentRequestsSent).toBe(0);
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
@@ -242,5 +262,77 @@ describe("daily cron route", () => {
     expect(body.errors[0]).toMatch(/row 2/);
     expect(updateInviteSent).toHaveBeenCalledWith(3, "2026-08-15");
     expect(updateInviteSent).not.toHaveBeenCalledWith(2, expect.anything());
+  });
+
+  describe("payment-request email", () => {
+    it("sends once for a responded, unpaid row with a balance due, and marks payment_request_sent_at", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
+
+      getAllRows.mockResolvedValue([
+        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 1, receptionCount: 2 }),
+      ]);
+
+      const res = await GET(makeRequest());
+      const body = await res.json();
+
+      expect(body.paymentRequestsSent).toBe(1);
+      expect(sendEmail).toHaveBeenCalledTimes(1);
+      expect(sendEmail.mock.calls[0]?.[0]).toBe("test@example.com");
+      expect(sendEmail.mock.calls[0]?.[1].subject).toMatch(/payment is open/i);
+      expect(updatePaymentRequestSent).toHaveBeenCalledWith(2, "2026-09-02");
+    });
+
+    it("skips when PAYPAL_ENABLED=false", async () => {
+      process.env.PAYPAL_ENABLED = "false";
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
+
+      getAllRows.mockResolvedValue([
+        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 1, receptionCount: 2 }),
+      ]);
+
+      const res = await GET(makeRequest());
+      const body = await res.json();
+
+      expect(body.paymentRequestsSent).toBe(0);
+      expect(sendEmail).not.toHaveBeenCalled();
+      expect(updatePaymentRequestSent).not.toHaveBeenCalled();
+    });
+
+    it("skips a row that's already been sent a payment request", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
+
+      getAllRows.mockResolvedValue([
+        row({
+          inviteSentAt: "2026-08-01",
+          golfRsvpCount: 1,
+          receptionCount: 2,
+          paymentRequestSentAt: "2026-08-25",
+        }),
+      ]);
+
+      const res = await GET(makeRequest());
+      const body = await res.json();
+
+      expect(body.paymentRequestsSent).toBe(0);
+      expect(sendEmail).not.toHaveBeenCalled();
+    });
+
+    it("skips a row with nothing owed", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
+
+      getAllRows.mockResolvedValue([
+        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 0, receptionCount: 0 }),
+      ]);
+
+      const res = await GET(makeRequest());
+      const body = await res.json();
+
+      expect(body.paymentRequestsSent).toBe(0);
+      expect(sendEmail).not.toHaveBeenCalled();
+    });
   });
 });

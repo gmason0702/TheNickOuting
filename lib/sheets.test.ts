@@ -33,6 +33,7 @@ const {
   getAllRows,
   getTotalGolferCount,
   updateInviteSent,
+  updatePaymentRequestSent,
   updatePaymentStatus,
   updateReminder,
   updateRsvpCounts,
@@ -55,6 +56,7 @@ interface SheetRowFields {
   invite_sent_at: string;
   last_reminder_sent_at: string;
   reminder_count: string;
+  payment_request_sent_at: string;
 }
 
 function sheetRow(overrides: Partial<SheetRowFields> = {}): string[] {
@@ -75,6 +77,7 @@ function sheetRow(overrides: Partial<SheetRowFields> = {}): string[] {
     invite_sent_at: "",
     last_reminder_sent_at: "",
     reminder_count: "0",
+    payment_request_sent_at: "",
   };
   const merged: SheetRowFields = { ...base, ...overrides };
   return [
@@ -94,6 +97,7 @@ function sheetRow(overrides: Partial<SheetRowFields> = {}): string[] {
     merged.invite_sent_at,
     merged.last_reminder_sent_at,
     merged.reminder_count,
+    merged.payment_request_sent_at,
   ];
 }
 
@@ -138,6 +142,7 @@ describe("getAllRows", () => {
             invite_sent_at: "2026-08-01",
             last_reminder_sent_at: "2026-08-15",
             reminder_count: "1",
+            payment_request_sent_at: "2026-08-22",
           }),
         ],
       },
@@ -155,6 +160,7 @@ describe("getAllRows", () => {
       inviteSentAt: "2026-08-01",
       lastReminderSentAt: "2026-08-15",
       reminderCount: 1,
+      paymentRequestSentAt: "2026-08-22",
     });
   });
 });
@@ -242,6 +248,16 @@ describe("updateInviteSent", () => {
     const call = valuesUpdate.mock.calls[0]![0];
     expect(call.range).toBe("'Invites List - golf_invite_list'!N3");
     expect(call.requestBody.values).toEqual([["2026-08-15"]]);
+  });
+});
+
+describe("updatePaymentRequestSent", () => {
+  it("writes only payment_request_sent_at", async () => {
+    valuesUpdate.mockResolvedValue({});
+    await updatePaymentRequestSent(4, "2026-08-22");
+    const call = valuesUpdate.mock.calls[0]![0];
+    expect(call.range).toBe("'Invites List - golf_invite_list'!Q4");
+    expect(call.requestBody.values).toEqual([["2026-08-22"]]);
   });
 });
 

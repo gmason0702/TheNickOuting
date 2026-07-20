@@ -119,6 +119,25 @@ export function confirmationPaymentPendingEmail(params: {
   };
 }
 
+export function paymentRequestEmail(params: {
+  name: string;
+  rsvpLink: string;
+  golferCount: number;
+  receptionCount: number;
+  amountDue: number;
+}): EmailContent {
+  const eventDate = formatEventDate();
+  return {
+    subject: `Payment is open: secure your spot for ${eventDate}`,
+    html: wrap(`
+      <p>Hi ${params.name},</p>
+      <p>Payment is now open! You're set for ${params.golferCount} golfer(s) and ${params.receptionCount} at the reception on ${eventDate} — to lock in your spot, you owe <strong>$${params.amountDue.toFixed(2)}</strong>.</p>
+      <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      <p>That same link also lets you update your headcounts first, if anything's changed, before paying.</p>
+    `),
+  };
+}
+
 export function confirmationFreeEmail(params: {
   name: string;
   rsvpLink: string;
