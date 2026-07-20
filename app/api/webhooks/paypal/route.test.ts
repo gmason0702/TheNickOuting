@@ -31,6 +31,7 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     inviteSentAt: "2026-08-01",
     lastReminderSentAt: null,
     reminderCount: 0,
+    paymentRequestSentAt: null,
     ...overrides,
   };
 }

@@ -1,3 +1,4 @@
+import { calculateTotal } from "./pricing";
 import type { InviteRow, ReminderStage } from "./types";
 
 /** Tier 1's initial invite send date; each later tier follows by TIER_INTERVAL_DAYS. */
@@ -52,11 +53,9 @@ function isOnOrAfter(dateStr: string, thresholdStr: string): boolean {
   return dateStr >= thresholdStr;
 }
 
-export function isFullyResponded(row: InviteRow): boolean {
-  return (
-    row.receptionCount !== null &&
-    (row.golfRsvpCount === 0 || row.paymentStatus === "paid")
-  );
+/** True once they've told us a headcount at all -- independent of whether golf is paid for yet. */
+export function hasResponded(row: InviteRow): boolean {
+  return row.receptionCount !== null;
 }
 
 export function tierSendDate(tier: number): string {
@@ -70,7 +69,7 @@ export function tierSendDate(tier: number): string {
 export function shouldSendInitialInvite(row: InviteRow, today: string): boolean {
   if (row.golfInviteTier === null) return false;
   if (row.inviteSentAt !== null) return false;
-  if (isFullyResponded(row)) return false;
+  if (hasResponded(row)) return false;
   if (row.golfInviteTier === 0) return true;
   return isOnOrAfter(today, tierSendDate(row.golfInviteTier));
 }
@@ -79,7 +78,7 @@ export type ReminderDecision = { send: false } | { send: true; stage: ReminderSt
 
 export function shouldSendReminder(row: InviteRow, today: string): ReminderDecision {
   if (row.inviteSentAt === null) return { send: false };
-  if (isFullyResponded(row)) return { send: false };
+  if (hasResponded(row)) return { send: false };
   if (today > EVENT_DATE) return { send: false };
 
   let willSend: boolean;
@@ -107,4 +106,26 @@ export function shouldSendReminder(row: InviteRow, today: string): ReminderDecis
   const finalCallThreshold = addDays(EVENT_DATE, -FINAL_CALL_WINDOW_DAYS);
   if (today >= finalCallThreshold) return { send: true, stage: "final-call" };
   return { send: true, stage };
+}
+
+export type PaymentRequestDecision = { send: false } | { send: true; amountDue: number };
+
+/**
+ * Fires once per invite, the first time payment collection is live, they've
+ * responded, they haven't been asked yet, and they actually owe something.
+ */
+export function shouldSendPaymentRequest(
+  row: InviteRow,
+  golferFee: number,
+  receptionFee: number,
+): PaymentRequestDecision {
+  if (!hasResponded(row)) return { send: false };
+  if (row.paymentRequestSentAt !== null) return { send: false };
+
+  const total = calculateTotal(row.golfRsvpCount ?? 0, row.receptionCount ?? 0, golferFee, receptionFee);
+  const alreadyPaid = row.paymentStatus === "paid" ? row.paymentAmount ?? 0 : 0;
+  const amountDue = total - alreadyPaid;
+
+  if (amountDue <= 0) return { send: false };
+  return { send: true, amountDue };
 }

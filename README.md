@@ -33,7 +33,7 @@ npm run dev
 | `SITE_URL` | Public site origin, used to build RSVP links |
 | `CRON_SECRET` | Optional bearer token the cron route requires when set |
 | `AUTOMATED_SENDING_ENABLED` | Must be the literal string `true` or the daily cron is a no-op. **Defaults to disabled** — leave unset until PayPal, Resend, and everything else is verified end-to-end, since once enabled it will email every eligible real invitee in the Sheet automatically. |
-| `PAYPAL_ENABLED` | Set to the literal string `false` to softly bypass PayPal while it isn't set up yet — any RSVP that owes money still writes its headcounts and gets an immediate "payment coming soon" email instead of a PayPal redirect/error. **Defaults to enabled** (normal behavior); flip back once real PayPal credentials are in place. |
+| `PAYPAL_ENABLED` | Set to the literal string `false` to softly bypass PayPal while it isn't set up yet — any RSVP that owes money still writes its headcounts and gets an immediate "payment coming soon" email instead of a PayPal redirect/error. Also gates the daily cron's payment-request email (see below) — nothing owed gets asked for until this is `true`. **Defaults to enabled** (normal behavior); flip back once real PayPal credentials are in place. |
 
 ## Manual steps outside this codebase
 
@@ -48,3 +48,7 @@ These require live account access an agent doesn't have, and aren't done yet:
 3. **Resend:** verify the `mail.thenickouting.com` sending domain via DNS.
 4. **Vercel Cron:** confirm the `vercel.json` cron entry is picked up after first
    deploy (Vercel Hobby plans allow one daily invocation).
+5. **Google Sheet:** add a new column Q named `payment_request_sent_at` — tracks the
+   one-time "secure your tickets" payment email (separate from `invite_sent_at`, column N).
+   Fires automatically for anyone who's RSVP'd with a balance due, the first daily cron
+   run after `PAYPAL_ENABLED` is `true`.

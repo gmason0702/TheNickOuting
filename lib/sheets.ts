@@ -3,11 +3,12 @@ import { env } from "./env";
 import type { InviteRow } from "./types";
 
 /**
- * Column layout of the real `Invites List - golf_invite_list` sheet (16 columns, A-P).
+ * Column layout of the real `Invites List - golf_invite_list` sheet (17 columns, A-Q).
  * Columns D/F/G (2026_golf_status, reception_invite, reception_status) exist in Gordon's
- * sheet but are intentionally left untouched by the app.
+ * sheet but are intentionally left untouched by the app. Column Q (payment_request_sent_at)
+ * tracks the one-time "secure your tickets" payment email, separate from invite_sent_at (N).
  */
-const DATA_RANGE = "A2:P";
+const DATA_RANGE = "A2:Q";
 
 function quoteSheetName(name: string): string {
   return /[\s'!]/.test(name) ? `'${name.replace(/'/g, "''")}'` : name;
@@ -61,6 +62,7 @@ function toInviteRow(values: string[], rowNumber: number): InviteRow {
     inviteSentAt: parseStringOrNull(values[13]),
     lastReminderSentAt: parseStringOrNull(values[14]),
     reminderCount: parseIntOrNull(values[15]) ?? 0,
+    paymentRequestSentAt: parseStringOrNull(values[16]),
   };
 }
 
@@ -132,6 +134,16 @@ export async function updateInviteSent(rowNumber: number, date: string): Promise
   await sheets.spreadsheets.values.update({
     spreadsheetId: env.googleSheetId,
     range: range(`N${rowNumber}`),
+    valueInputOption: "RAW",
+    requestBody: { values: [[date]] },
+  });
+}
+
+export async function updatePaymentRequestSent(rowNumber: number, date: string): Promise<void> {
+  const sheets = getClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: env.googleSheetId,
+    range: range(`Q${rowNumber}`),
     valueInputOption: "RAW",
     requestBody: { values: [[date]] },
   });

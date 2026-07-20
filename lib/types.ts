@@ -14,6 +14,7 @@ export interface InviteRow {
   inviteSentAt: string | null;
   lastReminderSentAt: string | null;
   reminderCount: number;
+  paymentRequestSentAt: string | null;
 }
 
 export type ReminderStage = "first" | "second" | "ongoing" | "final-call";
