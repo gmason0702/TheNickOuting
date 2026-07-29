@@ -28,6 +28,7 @@ export function initialInviteEmail(params: {
         <li>Just coming to the reception afterward? Count them in the reception total.</li>
         <li>Nobody able to make it? Leave golf off and enter 0 for reception.</li>
       </ul>
+      <p>No payment needed right now — just RSVP with your headcounts. We'll follow up with a separate email in the coming weeks once payment is open, with a link to pay whatever you owe based on your RSVP.</p>
       <p>Please RSVP if you can — see you on the course!</p>
     `),
   };
