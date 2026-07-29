@@ -1,9 +1,12 @@
 import { calculateTotal } from "./pricing";
 import type { InviteRow, ReminderStage } from "./types";
 
-/** Tier 1's initial invite send date; each later tier follows by TIER_INTERVAL_DAYS. */
-export const TIER_BASE_DATE = "2026-08-01";
-export const TIER_INTERVAL_DAYS = 14;
+/** Per-tier initial-invite send dates -- not a uniform interval. */
+const TIER_SEND_DATES: Record<number, string> = {
+  1: "2026-07-29",
+  2: "2026-08-12",
+  3: "2026-08-19",
+};
 
 export const EVENT_DATE = "2026-10-02";
 export const FINAL_CALL_WINDOW_DAYS = 10;
@@ -59,7 +62,9 @@ export function hasResponded(row: InviteRow): boolean {
 }
 
 export function tierSendDate(tier: number): string {
-  return addDays(TIER_BASE_DATE, (tier - 1) * TIER_INTERVAL_DAYS);
+  const date = TIER_SEND_DATES[tier];
+  if (!date) throw new Error(`No send date configured for tier ${tier}`);
+  return date;
 }
 
 /**
