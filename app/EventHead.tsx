@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { GOLF_START_TIME, RECEPTION_START_TIME, formatClockTime, formatEventDate } from "@/lib/cadence";
-import { CheckIcon, FlagIcon, GlassIcon, MapPinIcon, TheNickLogo, XIcon } from "./icons";
+import { CheckIcon, FlagIcon, GlassIcon, MapPinIcon, XIcon } from "./icons";
 
 export function Logo() {
   return (
