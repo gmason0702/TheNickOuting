@@ -22,11 +22,11 @@ export function initialInviteEmail(params: {
       <p>Hi ${params.name},</p>
       <p>You're invited to this year's golf tournament on <strong>${eventDate}</strong>! Whether you're playing golf or just joining us for the reception afterward, we'd love to have you.</p>
       <p><strong>RSVP here:</strong> <a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
-      <p>On the RSVP page, just tell us how many people from your household are golfing and how many are coming to the reception — golf is $${params.golferFee} per golfer and includes a reception seat; reception only (no golf) is $${params.receptionFee} per person.</p>
+      <p>Only one golf ticket per invite ($${params.golferFee}, includes a free reception seat) — then let us know how many people total from your group will be at the reception ($${params.receptionFee} per person beyond your golf ticket).</p>
       <ul>
-        <li>Golfing and going to the reception? Count them in both — the reception seat that comes with golf is free.</li>
-        <li>Just coming to celebrate afterward? Count them in reception only.</li>
-        <li>Nobody able to make it? Enter 0 for both so we can plan headcount.</li>
+        <li>Golfing? Turn it on — your reception seat is included free.</li>
+        <li>Just coming to the reception afterward? Count them in the reception total.</li>
+        <li>Nobody able to make it? Leave golf off and enter 0 for reception.</li>
       </ul>
       <p>Please RSVP if you can — see you on the course!</p>
     `),
