@@ -1,5 +1,5 @@
 import { GOLF_START_TIME, RECEPTION_START_TIME, formatClockTime, formatEventDate } from "@/lib/cadence";
-import { CheckIcon, FlagIcon, GlassIcon, TheNickLogo, XIcon } from "./icons";
+import { CheckIcon, FlagIcon, GlassIcon, MapPinIcon, TheNickLogo, XIcon } from "./icons";
 
 export function Logo() {
   return (
@@ -49,6 +49,15 @@ export function EventRows({ golfing, reception }: EventRowsProps = {}) {
           </p>
         </div>
         {reception !== undefined && <StatusBadge attending={reception} />}
+      </div>
+      <div className="head">
+        <div className="mark">
+          <MapPinIcon />
+        </div>
+        <div>
+          <p className="event">Where</p>
+          <p className="date">Brendonwood Neighborhood Clubhouse</p>
+        </div>
       </div>
     </>
   );
