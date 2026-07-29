@@ -127,8 +127,9 @@ export function RsvpForm({
         <EventHead />
         <h1>Hi {name}, who&apos;s joining us?</h1>
         <p className="lede">
-          Tell us how many from your group are golfing and how many are coming to the reception —
-          0 is fine for either. You can come back and update this using the same link.
+          Let us know if you're golfing (one ticket per invite), then how many total from your
+          group are coming to the reception — 0 is fine for either. You can come back and update
+          this using the same link.
         </p>
 
         <div className="counters">
