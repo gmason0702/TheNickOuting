@@ -127,15 +127,15 @@ export function RsvpForm({
         <EventHead />
         <h1>Hi {name}, who&apos;s joining us?</h1>
         <p className="lede">
-          Tell us how many from your group are golfing and how many are coming to the reception —
-          0 is fine for either. You can come back and update this using the same link.
+          Let us know if you're golfing and how many are coming to the reception — 0 is fine for
+          either. You can come back and update this using the same link.
         </p>
 
         <div className="counters">
           <div className="counter-row">
             <div className="counter-body">
-              <span className="counter-title">Golfing</span>
-              <span className="counter-sub">${fee} per golfer — includes the round + reception</span>
+              <span className="counter-title">Are you golfing?</span>
+              <span className="counter-sub">${fee} per golfer — includes the reception</span>
               <span className="capacity-note">
                 {liveGolferTotal}/{MAX_GOLFERS} golfers registered
               </span>
@@ -166,8 +166,8 @@ export function RsvpForm({
 
           <div className="counter-row">
             <div className="counter-body">
-              <span className="counter-title">Reception</span>
-              <span className="counter-sub">${receptionFee} per person — included free with each golfer</span>
+              <span className="counter-title">How many are coming to the reception?</span>
+              <span className="counter-sub">${receptionFee} per person</span>
             </div>
             <div className="stepper">
               <button

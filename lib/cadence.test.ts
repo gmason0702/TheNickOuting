@@ -73,20 +73,20 @@ describe("hasResponded", () => {
 });
 
 describe("tierSendDate", () => {
-  it("tier 1 sends on the base date", () => {
-    expect(tierSendDate(1)).toBe("2026-08-01");
+  it("tier 1 sends today", () => {
+    expect(tierSendDate(1)).toBe("2026-07-29");
   });
 
-  it("tier 2 sends 14 days after tier 1", () => {
-    expect(tierSendDate(2)).toBe("2026-08-15");
+  it("tier 2 sends two weeks after tier 1", () => {
+    expect(tierSendDate(2)).toBe("2026-08-12");
   });
 
-  it("tier 3 sends 28 days after the base date", () => {
-    expect(tierSendDate(3)).toBe("2026-08-29");
+  it("tier 3 sends a week after tier 2", () => {
+    expect(tierSendDate(3)).toBe("2026-08-19");
   });
 
-  it("generalizes to arbitrary tiers beyond 3", () => {
-    expect(tierSendDate(5)).toBe("2026-09-26");
+  it("throws for a tier with no configured send date", () => {
+    expect(() => tierSendDate(4)).toThrow("No send date configured for tier 4");
   });
 });
 
@@ -96,11 +96,11 @@ describe("shouldSendInitialInvite", () => {
   });
 
   it("does not send before the tier's date arrives", () => {
-    expect(shouldSendInitialInvite(row({ golfInviteTier: 2 }), "2026-08-14")).toBe(false);
+    expect(shouldSendInitialInvite(row({ golfInviteTier: 2 }), "2026-08-11")).toBe(false);
   });
 
   it("sends once the tier's date arrives", () => {
-    expect(shouldSendInitialInvite(row({ golfInviteTier: 2 }), "2026-08-15")).toBe(true);
+    expect(shouldSendInitialInvite(row({ golfInviteTier: 2 }), "2026-08-12")).toBe(true);
   });
 
   it("sends after the tier's date too", () => {

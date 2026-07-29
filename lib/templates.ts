@@ -6,7 +6,7 @@ export interface EmailContent {
 }
 
 function wrap(bodyHtml: string): string {
-  return `<div style="font-family: sans-serif; line-height: 1.5; color: #1c261e;">${bodyHtml}</div>`;
+  return `<div style="font-family: sans-serif; line-height: 1.5; color: #1c261e;">${bodyHtml}<p>Have any questions? Email <a href="mailto:thenickouting@gmail.com">thenickouting@gmail.com</a>.</p></div>`;
 }
 
 export function initialInviteEmail(params: {
@@ -20,14 +20,9 @@ export function initialInviteEmail(params: {
     subject: `You're invited: ${eventDate} Golf Tournament`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>You're invited to this year's golf tournament on <strong>${eventDate}</strong>! Whether you're playing golf or just joining us for the reception afterward, we'd love to have you.</p>
+      <p>You're invited to this year's golf outing and reception on <strong>${eventDate}</strong>! Whether you're playing golf or just joining us for the reception afterward, we'd love to have you.</p>
       <p><strong>RSVP here:</strong> <a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
-      <p>On the RSVP page, just tell us how many people from your household are golfing and how many are coming to the reception — golf is $${params.golferFee} per golfer and includes a reception seat; reception only (no golf) is $${params.receptionFee} per person.</p>
-      <ul>
-        <li>Golfing and going to the reception? Count them in both — the reception seat that comes with golf is free.</li>
-        <li>Just coming to celebrate afterward? Count them in reception only.</li>
-        <li>Nobody able to make it? Enter 0 for both so we can plan headcount.</li>
-      </ul>
+      <p>Only one golf ticket per invite ($${params.golferFee}, includes a free reception seat for that golfer) — then tell us the total number of people from your group who'll be at the reception, including the golfer if they're staying ($${params.receptionFee} per person beyond your golf ticket).</p>
       <p>Please RSVP if you can — see you on the course!</p>
     `),
   };
@@ -95,7 +90,7 @@ export function confirmationPaidEmail(params: {
     html: wrap(`
       <p>Hi ${params.name},</p>
       <p>You're fully confirmed and paid up — ${params.golferCount} golfing, ${params.receptionCount} total at the reception — for ${eventDate}! PayPal will also send you a separate payment receipt for your records.</p>
-      <p>See you on the course! Questions? Just reply to this email.</p>
+      <p>See you on the course!</p>
     `),
   };
 }
