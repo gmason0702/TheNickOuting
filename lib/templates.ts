@@ -20,15 +20,9 @@ export function initialInviteEmail(params: {
     subject: `You're invited: ${eventDate} Golf Tournament`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>You're invited to this year's golf tournament on <strong>${eventDate}</strong>! Whether you're playing golf or just joining us for the reception afterward, we'd love to have you.</p>
+      <p>You're invited to this year's golf outing and reception on <strong>${eventDate}</strong>! Whether you're playing golf or just joining us for the reception afterward, we'd love to have you.</p>
       <p><strong>RSVP here:</strong> <a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
-      <p>Only one golf ticket per invite ($${params.golferFee}, includes a free reception seat) — then let us know how many people total from your group will be at the reception ($${params.receptionFee} per person beyond your golf ticket).</p>
-      <ul>
-        <li>Golfing? Turn it on — your reception seat is included free.</li>
-        <li>Just coming to the reception afterward? Count them in the reception total.</li>
-        <li>Nobody able to make it? Leave golf off and enter 0 for reception.</li>
-      </ul>
-      <p>No payment needed right now — just RSVP with your headcounts. We'll follow up with a separate email in the coming weeks once payment is open, with a link to pay whatever you owe based on your RSVP.</p>
+      <p>Only one golf ticket per invite ($${params.golferFee}, includes a free reception seat for that golfer) — then tell us the total number of people from your group who'll be at the reception, including the golfer if they're staying ($${params.receptionFee} per person beyond your golf ticket).</p>
       <p>Please RSVP if you can — see you on the course!</p>
     `),
   };
