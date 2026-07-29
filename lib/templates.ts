@@ -6,7 +6,7 @@ export interface EmailContent {
 }
 
 function wrap(bodyHtml: string): string {
-  return `<div style="font-family: sans-serif; line-height: 1.5; color: #1c261e;">${bodyHtml}</div>`;
+  return `<div style="font-family: sans-serif; line-height: 1.5; color: #1c261e;">${bodyHtml}<p>Have any questions? Email <a href="mailto:thenickouting@gmail.com">thenickouting@gmail.com</a>.</p></div>`;
 }
 
 export function initialInviteEmail(params: {
@@ -90,7 +90,7 @@ export function confirmationPaidEmail(params: {
     html: wrap(`
       <p>Hi ${params.name},</p>
       <p>You're fully confirmed and paid up — ${params.golferCount} golfing, ${params.receptionCount} total at the reception — for ${eventDate}! PayPal will also send you a separate payment receipt for your records.</p>
-      <p>See you on the course! Questions? Just reply to this email.</p>
+      <p>See you on the course!</p>
     `),
   };
 }
