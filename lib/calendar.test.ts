@@ -42,7 +42,7 @@ describe("buildIcsCalendar", () => {
     expect(ics).toContain("BEGIN:VEVENT");
     expect(ics).toContain("DTSTART:20261002T180000Z");
     expect(ics).toContain("DTEND:20261002T220000Z");
-    expect(ics).toContain("SUMMARY:Nick Jacobi Memorial Golf Tournament — Golf");
+    expect(ics).toContain("SUMMARY:Nick Jacobi Memorial Outing — Golf");
     expect(ics).toContain("LOCATION:Brendonwood Clubhouse\\, Indianapolis\\, IN 46226");
     expect(ics).toContain("END:VEVENT");
     expect(ics).toContain("END:VCALENDAR");

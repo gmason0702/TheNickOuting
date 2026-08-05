@@ -1,4 +1,4 @@
-import { formatEventDate } from "./cadence";
+import { formatEventDate, formatEventDateShort } from "./cadence";
 
 export interface EmailContent {
   subject: string;
@@ -17,7 +17,7 @@ export function initialInviteEmail(params: {
 }): EmailContent {
   const eventDate = formatEventDate();
   return {
-    subject: `You're invited: ${eventDate} Golf Tournament`,
+    subject: `You're invited: ${eventDate} Nick Jacobi Memorial Outing`,
     html: wrap(`
       <p>Hi ${params.name},</p>
       <p>You're invited to this year's golf outing and reception on <strong>${eventDate}</strong>! Whether you're playing golf or just joining us for the reception afterward, we'd love to have you.</p>
@@ -31,7 +31,7 @@ export function initialInviteEmail(params: {
 export function reminderFirstEmail(params: { name: string; rsvpLink: string }): EmailContent {
   const eventDate = formatEventDate();
   return {
-    subject: `Still time to RSVP: ${eventDate} Golf Tournament`,
+    subject: `Still time to RSVP: ${formatEventDateShort()} Nick Jacobi Memorial Outing`,
     html: wrap(`
       <p>Hi ${params.name},</p>
       <p>Pssst — we haven't heard back yet on The Nick golf outing and reception on ${eventDate}. Do us a solid and let us know if you are golfing and how many are coming to the reception (even if you aren't coming):</p>
@@ -44,10 +44,10 @@ export function reminderFirstEmail(params: { name: string; rsvpLink: string }): 
 export function reminderSecondEmail(params: { name: string; rsvpLink: string }): EmailContent {
   const eventDate = formatEventDate();
   return {
-    subject: `RSVP reminder: ${eventDate} Golf Tournament`,
+    subject: `RSVP reminder: ${eventDate} Nick Jacobi Memorial Outing`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>Following up again on the golf tournament — ${eventDate} is getting closer and we're finalizing headcount and tee times. Can you RSVP when you get a chance?</p>
+      <p>Following up again on the Nick Jacobi Memorial Outing — ${eventDate} is getting closer and we're finalizing headcount and tee times. Can you RSVP when you get a chance?</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
     `),
   };
@@ -56,10 +56,10 @@ export function reminderSecondEmail(params: { name: string; rsvpLink: string }):
 export function reminderOngoingEmail(params: { name: string; rsvpLink: string }): EmailContent {
   const eventDate = formatEventDate();
   return {
-    subject: `RSVP reminder: ${eventDate} Golf Tournament`,
+    subject: `RSVP reminder: ${eventDate} Nick Jacobi Memorial Outing`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>The golf tournament is coming up on ${eventDate} — we still need your RSVP to finalize the details. One click:</p>
+      <p>The Nick Jacobi Memorial Outing is coming up on ${eventDate} — we still need your RSVP to finalize the details. One click:</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
       <p>If you're not able to make it this year, that's totally fine too — just let us know so we can plan around it.</p>
     `),
@@ -72,7 +72,7 @@ export function reminderFinalCallEmail(params: { name: string; rsvpLink: string 
     subject: `Last call: RSVP for ${eventDate} — this week!`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>The golf tournament is just days away (${eventDate}) and we still haven't heard from you. We need to lock in headcount very soon — can you RSVP today?</p>
+      <p>The Nick Jacobi Memorial Outing is just days away (${eventDate}) and we still haven't heard from you. We need to lock in headcount very soon — can you RSVP today?</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
       <p>If you can't make it, no worries at all — just let us know so we can finalize plans.</p>
     `),
