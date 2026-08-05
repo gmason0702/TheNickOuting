@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CalendarLinks } from "@/app/CalendarLinks";
 import { EventHead } from "@/app/EventHead";
-import { MAX_GOLFERS, golferCapacityStatus } from "@/lib/capacity";
+import { GolferReceptionCounters } from "@/app/rsvp/GolferReceptionCounters";
 import { submitRsvp } from "./actions";
 
 interface Props {
@@ -41,9 +41,6 @@ export function RsvpForm({
   const [confirmed, setConfirmed] = useState<ConfirmedState | null>(null);
 
   const golferCount = golfing ? 1 : 0;
-  const liveGolferTotal = othersGolferCount + golferCount;
-  const newSignupCapacity = golferCapacityStatus(othersGolferCount);
-  const golfLocked = !golfing && newSignupCapacity === "full";
 
   async function handleContinue() {
     setSubmitting(true);
@@ -131,64 +128,15 @@ export function RsvpForm({
           either. You can come back and update this using the same link.
         </p>
 
-        <div className="counters">
-          <div className="counter-row">
-            <div className="counter-body">
-              <span className="counter-title">Are you golfing?</span>
-              <span className="counter-sub">${fee} per golfer — includes the reception</span>
-              <span className="capacity-note">
-                {liveGolferTotal}/{MAX_GOLFERS} golfers registered
-              </span>
-              {!golfing && newSignupCapacity === "almost-full" && (
-                <span className="capacity-note capacity-warning">
-                  Golf is almost full — only {MAX_GOLFERS - othersGolferCount} spot
-                  {MAX_GOLFERS - othersGolferCount === 1 ? "" : "s"} left.
-                </span>
-              )}
-              {golfLocked && (
-                <span className="capacity-note capacity-full">
-                  Golf is at maximum capacity ({MAX_GOLFERS}/{MAX_GOLFERS}).
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              className={`toggle ${golfing ? "toggle-on" : ""}`}
-              role="switch"
-              aria-checked={golfing}
-              aria-label="Golfing"
-              disabled={golfLocked}
-              onClick={() => setGolfing((g) => !g)}
-            >
-              <span className="toggle-thumb" />
-            </button>
-          </div>
-
-          <div className="counter-row">
-            <div className="counter-body">
-              <span className="counter-title">How many are coming to the reception?</span>
-              <span className="counter-sub">${receptionFee} per person</span>
-            </div>
-            <div className="stepper">
-              <button
-                className="stepper-btn"
-                onClick={() => setReceptionCount((c) => Math.max(0, c - 1))}
-                disabled={receptionCount === 0}
-                aria-label="Decrease reception count"
-              >
-                −
-              </button>
-              <span className="stepper-value">{receptionCount}</span>
-              <button
-                className="stepper-btn"
-                onClick={() => setReceptionCount((c) => c + 1)}
-                aria-label="Increase reception count"
-              >
-                +
-              </button>
-            </div>
-          </div>
-        </div>
+        <GolferReceptionCounters
+          fee={fee}
+          receptionFee={receptionFee}
+          golfing={golfing}
+          onGolfingChange={setGolfing}
+          receptionCount={receptionCount}
+          onReceptionCountChange={setReceptionCount}
+          othersGolferCount={othersGolferCount}
+        />
 
         {error && (
           <p className="alert" role="alert">

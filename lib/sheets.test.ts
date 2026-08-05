@@ -1,8 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const { mockRandomBytes } = vi.hoisted(() => ({ mockRandomBytes: vi.fn() }));
+
 const valuesGet = vi.fn();
 const valuesUpdate = vi.fn();
 const valuesBatchUpdate = vi.fn();
+const valuesAppend = vi.fn();
+
+vi.mock("crypto", () => ({ randomBytes: mockRandomBytes }));
+
+const actualCrypto = await vi.importActual<typeof import("crypto")>("crypto");
+mockRandomBytes.mockImplementation(actualCrypto.randomBytes);
 
 vi.mock("googleapis", () => {
   return {
@@ -16,6 +24,7 @@ vi.mock("googleapis", () => {
             get: valuesGet,
             update: valuesUpdate,
             batchUpdate: valuesBatchUpdate,
+            append: valuesAppend,
           },
         },
       })),
@@ -29,7 +38,9 @@ process.env.GOOGLE_SHEET_ID = "sheet-id-123";
 process.env.GOOGLE_SHEET_TAB_NAME = "Invites List - golf_invite_list";
 
 const {
+  appendRow,
   findRowByToken,
+  generateUniqueToken,
   getAllRows,
   getTotalGolferCount,
   updateInviteSent,
@@ -105,6 +116,9 @@ beforeEach(() => {
   valuesGet.mockReset();
   valuesUpdate.mockReset();
   valuesBatchUpdate.mockReset();
+  valuesAppend.mockReset();
+  mockRandomBytes.mockReset();
+  mockRandomBytes.mockImplementation(actualCrypto.randomBytes);
 });
 
 describe("getAllRows", () => {
@@ -268,5 +282,93 @@ describe("updateReminder", () => {
     const call = valuesUpdate.mock.calls[0]![0];
     expect(call.range).toBe("'Invites List - golf_invite_list'!O3:P3");
     expect(call.requestBody.values).toEqual([["2026-08-29", 2]]);
+  });
+});
+
+describe("generateUniqueToken", () => {
+  it("returns a fresh token when it doesn't collide with any existing row", async () => {
+    valuesGet.mockResolvedValue({ data: { values: [sheetRow({ rsvp_token: "existing-token" })] } });
+
+    const token = await generateUniqueToken();
+
+    expect(typeof token).toBe("string");
+    expect(token.length).toBeGreaterThan(0);
+    expect(token).not.toBe("existing-token");
+  });
+
+  it("retries when the freshly generated token collides with an existing row", async () => {
+    const collidingBytes = Buffer.from("already-taken-16b");
+    const collidingToken = collidingBytes.toString("base64url");
+    valuesGet.mockResolvedValue({ data: { values: [sheetRow({ rsvp_token: collidingToken })] } });
+    mockRandomBytes
+      .mockImplementationOnce(() => collidingBytes)
+      .mockImplementationOnce(() => Buffer.from("a-fresh-unused-16"));
+
+    const token = await generateUniqueToken();
+
+    expect(mockRandomBytes).toHaveBeenCalledTimes(2);
+    expect(token).not.toBe(collidingToken);
+  });
+
+  it("gives up after 5 attempts if every generated token collides", async () => {
+    const collidingBytes = Buffer.from("already-taken-16b");
+    const collidingToken = collidingBytes.toString("base64url");
+    valuesGet.mockResolvedValue({ data: { values: [sheetRow({ rsvp_token: collidingToken })] } });
+    mockRandomBytes.mockImplementation(() => collidingBytes);
+
+    await expect(generateUniqueToken()).rejects.toThrow(
+      "Failed to generate a unique RSVP token after 5 attempts",
+    );
+    expect(mockRandomBytes).toHaveBeenCalledTimes(5);
+  });
+});
+
+describe("appendRow", () => {
+  it("appends all 17 columns in order, leaving tier/counts/manual columns blank", async () => {
+    valuesAppend.mockResolvedValue({
+      data: { updates: { updatedRange: "'Invites List - golf_invite_list'!A52:Q52" } },
+    });
+
+    const rowNumber = await appendRow({
+      name: "Jane Golfer",
+      email: "jane@example.com",
+      rsvpToken: "fresh-token",
+    });
+
+    expect(rowNumber).toBe(52);
+    expect(valuesAppend).toHaveBeenCalledTimes(1);
+    const call = valuesAppend.mock.calls[0]![0];
+    expect(call.spreadsheetId).toBe("sheet-id-123");
+    expect(call.range).toBe("'Invites List - golf_invite_list'!A2:Q");
+    expect(call.insertDataOption).toBe("INSERT_ROWS");
+    expect(call.requestBody.values).toEqual([
+      [
+        "Jane Golfer",
+        "jane@example.com",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "fresh-token",
+        "unpaid",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "",
+      ],
+    ]);
+  });
+
+  it("throws if the append response is missing updatedRange", async () => {
+    valuesAppend.mockResolvedValue({ data: {} });
+
+    await expect(
+      appendRow({ name: "Jane", email: "jane@example.com", rsvpToken: "tok" }),
+    ).rejects.toThrow("Sheet append response missing updatedRange");
   });
 });

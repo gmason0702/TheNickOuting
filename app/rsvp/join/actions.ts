@@ -9,79 +9,83 @@ import { assertValidHeadcounts } from "@/lib/rsvpValidation";
 import * as sheets from "@/lib/sheets";
 import { confirmationFreeEmail, confirmationPaymentPendingEmail } from "@/lib/templates";
 
-export type SubmitRsvpResult =
-  | { status: "not-found" }
-  | { status: "confirmed"; golferCount: number; receptionCount: number; refundNote: boolean }
+export type SubmitJoinResult =
+  | { status: "closed" }
+  | { status: "confirmed"; golferCount: number; receptionCount: number; rsvpLink: string }
   | {
       status: "confirmed-payment-pending";
       golferCount: number;
       receptionCount: number;
       amountDue: number;
+      rsvpLink: string;
     }
   | { status: "redirect"; approveUrl: string };
 
-export async function submitRsvp(
-  token: string,
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+export async function submitJoin(
+  name: string,
+  email: string,
   golferCount: number,
   receptionCount: number,
-): Promise<SubmitRsvpResult> {
+): Promise<SubmitJoinResult> {
+  if (!env.walkinEnabled) return { status: "closed" };
+
+  const trimmedName = name.trim();
+  if (!trimmedName) throw new Error("Name is required.");
+  if (!isValidEmail(email)) throw new Error("Enter a valid email address.");
   assertValidHeadcounts(golferCount, receptionCount);
 
-  const row = await sheets.findRowByToken(token);
-  if (!row) return { status: "not-found" };
-
-  // Only block *new* golfers -- someone who's already golfing keeps their
-  // spot on resubmission even if the field has since filled up around them.
-  const isAddingNewGolfer = golferCount > 0 && (row.golfRsvpCount ?? 0) === 0;
-  if (isAddingNewGolfer) {
+  if (golferCount > 0) {
     const totalGolfers = await sheets.getTotalGolferCount();
     if (totalGolfers >= MAX_GOLFERS) {
       throw new Error("Golf is at maximum capacity — you can still RSVP for the reception.");
     }
   }
 
-  // Headcounts always get written, even on a decrease -- accuracy of who's
-  // actually coming takes priority. Refunds for a net decrease are handled
-  // manually, outside this app; only a net increase triggers a new charge,
-  // and only for the difference against what's already been paid.
-  await sheets.updateRsvpCounts(row.rowNumber, golferCount, receptionCount);
+  const token = await sheets.generateUniqueToken();
+  const rowNumber = await sheets.appendRow({ name: trimmedName, email, rsvpToken: token });
+  await sheets.updateRsvpCounts(rowNumber, golferCount, receptionCount);
 
   const total = calculateTotal(golferCount, receptionCount, env.perGolferFee, env.perReceptionFee);
-  const alreadyPaid = row.paymentStatus === "paid" ? row.paymentAmount ?? 0 : 0;
-  const amountDue = total - alreadyPaid;
   const rsvpLink = `${env.siteUrl}/rsvp/${token}`;
 
-  if (amountDue <= 0) {
+  if (total <= 0) {
     await sendEmail(
-      row.email,
+      email,
       confirmationFreeEmail({
-        name: row.name,
+        name: trimmedName,
         rsvpLink,
         golferCount,
         receptionCount,
-        refundNote: amountDue < 0,
+        refundNote: false,
       }),
     );
-    return { status: "confirmed", golferCount, receptionCount, refundNote: amountDue < 0 };
+    return { status: "confirmed", golferCount, receptionCount, rsvpLink };
   }
 
   if (!env.paypalEnabled) {
     await sendEmail(
-      row.email,
+      email,
       confirmationPaymentPendingEmail({
-        name: row.name,
+        name: trimmedName,
         rsvpLink,
         golferCount,
         receptionCount,
-        amountDue,
+        amountDue: total,
       }),
     );
-    return { status: "confirmed-payment-pending", golferCount, receptionCount, amountDue };
+    return { status: "confirmed-payment-pending", golferCount, receptionCount, amountDue: total, rsvpLink };
   }
 
+  // Once appended, this row is an ordinary invite row -- an abandoned/failed
+  // checkout falls back to the existing per-token page (same as any other
+  // invite), not back to the join form, so a retry never creates a duplicate row.
   const order = await paypal.createOrder({
     token,
-    amount: amountDue,
+    amount: total,
     returnUrl: `${env.siteUrl}/rsvp/${token}/confirmed`,
     cancelUrl: `${env.siteUrl}/rsvp/${token}`,
   });

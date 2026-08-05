@@ -60,6 +60,10 @@ export const env = {
   get automatedSendingEnabled() {
     return process.env.AUTOMATED_SENDING_ENABLED === "true";
   },
+  /** Explicit opt-in: set to the literal string "true" to open up walk-in admission signups. */
+  get walkinEnabled() {
+    return process.env.WALKIN_ENABLED === "true";
+  },
   /** Reversible toggle: set to the literal string "false" to soft-fail past PayPal while it's not set up yet. */
   get paypalEnabled() {
     return process.env.PAYPAL_ENABLED !== "false";

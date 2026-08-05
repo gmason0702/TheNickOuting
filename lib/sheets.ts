@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { google } from "googleapis";
 import { env } from "./env";
 import type { InviteRow } from "./types";
@@ -85,6 +86,70 @@ export async function findRowByToken(token: string): Promise<InviteRow | null> {
 export async function getTotalGolferCount(): Promise<number> {
   const rows = await getAllRows();
   return rows.reduce((sum, r) => sum + (r.golfRsvpCount ?? 0), 0);
+}
+
+/** Mints a fresh 128-bit rsvp_token, retrying on the vanishingly unlikely collision. */
+export async function generateUniqueToken(): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const token = randomBytes(16).toString("base64url");
+    if (!(await findRowByToken(token))) return token;
+  }
+  throw new Error("Failed to generate a unique RSVP token after 5 attempts");
+}
+
+export interface NewInvite {
+  name: string;
+  email: string;
+  rsvpToken: string;
+}
+
+function parseRowNumberFromUpdatedRange(updatedRange: string): number {
+  const rowNumber = updatedRange.match(/![A-Z]+(\d+):/)?.[1];
+  if (!rowNumber) throw new Error(`Could not parse row number from updatedRange: ${updatedRange}`);
+  return parseInt(rowNumber, 10);
+}
+
+/**
+ * Appends a brand-new walk-in row: name/email/token are known up front, everything
+ * else starts blank/default (no golf_invite_tier — walk-ins never enter the tiered
+ * invite/reminder cadence) exactly like an untouched imported row. Headcounts are
+ * written separately via updateRsvpCounts, reusing that already-targeted write.
+ */
+export async function appendRow(newInvite: NewInvite): Promise<number> {
+  const sheets = getClient();
+  const res = await sheets.spreadsheets.values.append({
+    spreadsheetId: env.googleSheetId,
+    range: range(DATA_RANGE),
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: {
+      values: [
+        [
+          newInvite.name, // A name
+          newInvite.email, // B email
+          "", // C golf_invite_tier
+          "", // D 2026_golf_status (untouched)
+          "", // E golf_rsvp_count
+          "", // F reception_invite (untouched)
+          "", // G reception_status (untouched)
+          "", // H reception_count
+          newInvite.rsvpToken, // I rsvp_token
+          "unpaid", // J payment_status
+          "", // K payment_amount
+          "", // L paid_at
+          "", // M paypal_order_id
+          "", // N invite_sent_at
+          "", // O last_reminder_sent_at
+          0, // P reminder_count
+          "", // Q payment_request_sent_at
+        ],
+      ],
+    },
+  });
+
+  const updatedRange = res.data.updates?.updatedRange;
+  if (!updatedRange) throw new Error("Sheet append response missing updatedRange");
+  return parseRowNumberFromUpdatedRange(updatedRange);
 }
 
 export async function updateRsvpCounts(
