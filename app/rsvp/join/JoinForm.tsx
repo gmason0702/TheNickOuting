@@ -102,8 +102,10 @@ export function JoinForm({ fee, receptionFee, othersGolferCount }: Props) {
           <EventHead />
           <h1>Join us for The Nick</h1>
           <p className="lede">
-            Not on our invite list yet? Enter your name and email to RSVP — we&apos;ll send you a
-            personal link afterward so you can come back and update your headcounts any time.
+            Haven&apos;t received an email yet? No problem. Enter your name and email to RSVP —
+            we&apos;ll send you a personal link afterward so you can come back and update your
+            headcounts any time. Can&apos;t attend this year? RSVP &quot;No&quot; anyways so we
+            have your updated contact information for next year.
           </p>
 
           <div className="field">
