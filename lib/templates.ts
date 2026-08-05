@@ -34,7 +34,7 @@ export function reminderFirstEmail(params: { name: string; rsvpLink: string }): 
     subject: `Still time to RSVP: ${eventDate} Golf Tournament`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>Quick reminder — we haven't heard back yet on the golf tournament on ${eventDate}. Let us know how many are golfing and how many are coming to the reception (0 is fine for either):</p>
+      <p>Pssst — we haven't heard back yet on The Nick golf outing and reception on ${eventDate}. Do us a solid and let us know if you are golfing and how many are coming to the reception (even if you aren't coming):</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
       <p>Takes 30 seconds.</p>
     `),
