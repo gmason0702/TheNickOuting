@@ -50,8 +50,8 @@ export function zonedTimeToUtc(dateStr: string, timeStr: string, timeZone: strin
 
 export function golfCalendarEvent(): CalendarEvent {
   return {
-    title: "Nick Jacobi Memorial Golf Tournament — Golf",
-    description: "Golf tournament round.",
+    title: "Nick Jacobi Memorial Outing — Golf",
+    description: "Golf Scramble",
     start: zonedTimeToUtc(EVENT_DATE, GOLF_START_TIME, EVENT_TIME_ZONE),
     end: zonedTimeToUtc(EVENT_DATE, GOLF_END_TIME, EVENT_TIME_ZONE),
   };
@@ -59,7 +59,7 @@ export function golfCalendarEvent(): CalendarEvent {
 
 export function receptionCalendarEvent(): CalendarEvent {
   return {
-    title: "Nick Jacobi Memorial Golf Tournament — Reception",
+    title: "Nick Jacobi Memorial Outing — Reception",
     description: "Post-golf reception.",
     start: zonedTimeToUtc(EVENT_DATE, RECEPTION_START_TIME, EVENT_TIME_ZONE),
     end: zonedTimeToUtc(EVENT_DATE, RECEPTION_END_TIME, EVENT_TIME_ZONE),
@@ -82,7 +82,7 @@ export function buildIcsCalendar(events: CalendarEvent[]): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//The Nick Jacobi Memorial Golf Tournament//RSVP//EN",
+    "PRODID:-//The Nick Jacobi Memorial Outing//RSVP//EN",
     "CALSCALE:GREGORIAN",
   ];
   const stamp = formatIcsUtc(new Date());

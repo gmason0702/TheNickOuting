@@ -32,6 +32,17 @@ export function formatEventDate(): string {
   });
 }
 
+/** Same date as formatEventDate, without the weekday -- for subject lines. */
+export function formatEventDateShort(): string {
+  const [y, m, d] = EVENT_DATE.split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 /** Formats a "HH:mm" 24-hour string as e.g. "2:00pm". */
 export function formatClockTime(time: string): string {
   const [h, m] = time.split(":").map(Number) as [number, number];

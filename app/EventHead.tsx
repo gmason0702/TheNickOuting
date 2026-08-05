@@ -32,7 +32,7 @@ export function EventRows({ golfing, reception }: EventRowsProps = {}) {
           <FlagIcon />
         </div>
         <div>
-          <p className="event">Golf Tournament</p>
+          <p className="event">Golf</p>
           <p className="date">
             {eventDate} @ {formatClockTime(GOLF_START_TIME)}
           </p>

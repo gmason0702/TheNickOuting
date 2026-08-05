@@ -25,7 +25,7 @@ describe("sendEmail", () => {
     await sendEmail("invitee@example.com", { subject: "Hello", html: "<p>Hi</p>" });
 
     expect(sendMock).toHaveBeenCalledWith({
-      from: '"The Nick Jacobi Memorial Golf Tournament" <rsvp@mail.thenickouting.com>',
+      from: '"The Nick Jacobi Memorial Outing" <rsvp@mail.thenickouting.com>',
       to: "invitee@example.com",
       subject: "Hello",
       html: "<p>Hi</p>",

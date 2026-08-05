@@ -48,7 +48,7 @@ export const env = {
   get emailFrom() {
     return (
       process.env.EMAIL_FROM ||
-      '"The Nick Jacobi Memorial Golf Tournament" <rsvp@mail.thenickouting.com>'
+      '"The Nick Jacobi Memorial Outing" <rsvp@mail.thenickouting.com>'
     );
   },
   get siteUrl() {
