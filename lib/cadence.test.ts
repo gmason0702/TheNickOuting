@@ -167,40 +167,65 @@ describe("shouldSendReminder", () => {
     ).toEqual({ send: false });
   });
 
-  it("does not send the first reminder before invite_sent_at + 14 days", () => {
+  it("does not send the first reminder before invite_sent_at + 7 days", () => {
     expect(
-      shouldSendReminder(row({ inviteSentAt: "2026-08-01" }), "2026-08-14"),
+      shouldSendReminder(row({ inviteSentAt: "2026-08-01" }), "2026-08-07"),
     ).toEqual({ send: false });
   });
 
-  it("sends the first reminder at invite_sent_at + 14 days", () => {
+  it("sends the first reminder at invite_sent_at + 7 days", () => {
     expect(
-      shouldSendReminder(row({ inviteSentAt: "2026-08-01" }), "2026-08-15"),
+      shouldSendReminder(row({ inviteSentAt: "2026-08-01" }), "2026-08-08"),
     ).toEqual({ send: true, stage: "first" });
   });
 
-  it("does not send the second reminder before last_reminder_sent_at + 14 days", () => {
+  it("does not send the second reminder before last_reminder_sent_at + 7 days", () => {
     expect(
       shouldSendReminder(
-        row({ inviteSentAt: "2026-08-01", reminderCount: 1, lastReminderSentAt: "2026-08-15" }),
-        "2026-08-28",
+        row({ inviteSentAt: "2026-08-01", reminderCount: 1, lastReminderSentAt: "2026-08-08" }),
+        "2026-08-14",
       ),
     ).toEqual({ send: false });
   });
 
-  it("sends the second reminder at last_reminder_sent_at + 14 days", () => {
+  it("sends the second reminder at last_reminder_sent_at + 7 days", () => {
     expect(
       shouldSendReminder(
-        row({ inviteSentAt: "2026-08-01", reminderCount: 1, lastReminderSentAt: "2026-08-15" }),
-        "2026-08-29",
+        row({ inviteSentAt: "2026-08-01", reminderCount: 1, lastReminderSentAt: "2026-08-08" }),
+        "2026-08-15",
       ),
     ).toEqual({ send: true, stage: "second" });
   });
 
-  it("sends ongoing reminders every 4 days once reminder_count >= 2", () => {
+  it("sends the third and fourth reminders every 7 days too, before the floor kicks in", () => {
     expect(
       shouldSendReminder(
-        row({ inviteSentAt: "2026-08-01", reminderCount: 2, lastReminderSentAt: "2026-08-29" }),
+        row({ inviteSentAt: "2026-08-01", reminderCount: 2, lastReminderSentAt: "2026-08-15" }),
+        "2026-08-22",
+      ),
+    ).toEqual({ send: true, stage: "ongoing" });
+
+    expect(
+      shouldSendReminder(
+        row({ inviteSentAt: "2026-08-01", reminderCount: 3, lastReminderSentAt: "2026-08-22" }),
+        "2026-08-29",
+      ),
+    ).toEqual({ send: true, stage: "ongoing" });
+  });
+
+  it("does not send the third reminder before the 7-day standard delay", () => {
+    expect(
+      shouldSendReminder(
+        row({ inviteSentAt: "2026-08-01", reminderCount: 2, lastReminderSentAt: "2026-08-15" }),
+        "2026-08-21",
+      ),
+    ).toEqual({ send: false });
+  });
+
+  it("sends ongoing reminders every 4 days once reminder_count >= 4", () => {
+    expect(
+      shouldSendReminder(
+        row({ inviteSentAt: "2026-08-01", reminderCount: 4, lastReminderSentAt: "2026-08-29" }),
         "2026-09-02",
       ),
     ).toEqual({ send: true, stage: "ongoing" });
@@ -209,7 +234,7 @@ describe("shouldSendReminder", () => {
   it("does not send an ongoing reminder before the 4-day floor", () => {
     expect(
       shouldSendReminder(
-        row({ inviteSentAt: "2026-08-01", reminderCount: 2, lastReminderSentAt: "2026-08-29" }),
+        row({ inviteSentAt: "2026-08-01", reminderCount: 4, lastReminderSentAt: "2026-08-29" }),
         "2026-09-01",
       ),
     ).toEqual({ send: false });
