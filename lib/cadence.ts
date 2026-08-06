@@ -51,8 +51,8 @@ export function formatClockTime(time: string): string {
   return m === 0 ? `${hour12}${period}` : `${hour12}:${String(m).padStart(2, "0")}${period}`;
 }
 
-export const REMINDER_FIRST_DELAY_DAYS = 14;
-export const REMINDER_SECOND_DELAY_DAYS = 14;
+export const REMINDER_STANDARD_DELAY_DAYS = 7;
+export const REMINDER_STANDARD_STAGE_COUNT = 4;
 export const REMINDER_FLOOR_DELAY_DAYS = 4;
 
 /** Day-only date arithmetic, in UTC, on YYYY-MM-DD strings — no time-of-day component. */
@@ -100,15 +100,12 @@ export function shouldSendReminder(row: InviteRow, today: string): ReminderDecis
   let willSend: boolean;
   let stage: Exclude<ReminderStage, "final-call">;
 
-  if (row.reminderCount === 0) {
-    willSend = isOnOrAfter(today, addDays(row.inviteSentAt, REMINDER_FIRST_DELAY_DAYS));
-    stage = "first";
-  } else if (row.reminderCount === 1) {
+  if (row.reminderCount < REMINDER_STANDARD_STAGE_COUNT) {
     willSend = isOnOrAfter(
       today,
-      addDays(row.lastReminderSentAt ?? row.inviteSentAt, REMINDER_SECOND_DELAY_DAYS),
+      addDays(row.lastReminderSentAt ?? row.inviteSentAt, REMINDER_STANDARD_DELAY_DAYS),
     );
-    stage = "second";
+    stage = row.reminderCount === 0 ? "first" : row.reminderCount === 1 ? "second" : "ongoing";
   } else {
     willSend = isOnOrAfter(
       today,
