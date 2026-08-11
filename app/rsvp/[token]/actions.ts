@@ -3,7 +3,7 @@
 import { MAX_GOLFERS } from "@/lib/capacity";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
-import * as paypal from "@/lib/paypal";
+import * as stripeLib from "@/lib/stripe";
 import { calculateTotal } from "@/lib/pricing";
 import { assertValidHeadcounts } from "@/lib/rsvpValidation";
 import * as sheets from "@/lib/sheets";
@@ -18,7 +18,7 @@ export type SubmitRsvpResult =
       receptionCount: number;
       amountDue: number;
     }
-  | { status: "redirect"; approveUrl: string };
+  | { status: "redirect"; checkoutUrl: string };
 
 export async function submitRsvp(
   token: string,
@@ -65,7 +65,7 @@ export async function submitRsvp(
     return { status: "confirmed", golferCount, receptionCount, refundNote: amountDue < 0 };
   }
 
-  if (!env.paypalEnabled) {
+  if (!env.stripeEnabled) {
     await sendEmail(
       row.email,
       confirmationPaymentPendingEmail({
@@ -79,12 +79,13 @@ export async function submitRsvp(
     return { status: "confirmed-payment-pending", golferCount, receptionCount, amountDue };
   }
 
-  const order = await paypal.createOrder({
+  const session = await stripeLib.createCheckoutSession({
     token,
     amount: amountDue,
+    customerEmail: row.email,
     returnUrl: `${env.siteUrl}/rsvp/${token}/confirmed`,
     cancelUrl: `${env.siteUrl}/rsvp/${token}`,
   });
 
-  return { status: "redirect", approveUrl: order.approveUrl };
+  return { status: "redirect", checkoutUrl: session.checkoutUrl };
 }

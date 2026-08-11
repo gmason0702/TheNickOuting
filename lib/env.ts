@@ -19,20 +19,11 @@ export const env = {
   get googleSheetTabName() {
     return process.env.GOOGLE_SHEET_TAB_NAME || "Sheet1";
   },
-  get paypalClientId() {
-    return required("PAYPAL_CLIENT_ID");
+  get stripeSecretKey() {
+    return required("STRIPE_SECRET_KEY");
   },
-  get paypalClientSecret() {
-    return required("PAYPAL_CLIENT_SECRET");
-  },
-  get paypalMode() {
-    return process.env.PAYPAL_MODE === "live" ? "live" : "sandbox";
-  },
-  get paypalWebhookId() {
-    return required("PAYPAL_WEBHOOK_ID");
-  },
-  get paypalPayeeEmail() {
-    return required("PAYPAL_PAYEE_EMAIL");
+  get stripeWebhookSecret() {
+    return required("STRIPE_WEBHOOK_SECRET");
   },
   get perGolferFee() {
     const raw = process.env.PER_GOLFER_FEE;
@@ -64,8 +55,8 @@ export const env = {
   get walkinEnabled() {
     return process.env.WALKIN_ENABLED === "true";
   },
-  /** Reversible toggle: set to the literal string "false" to soft-fail past PayPal while it's not set up yet. */
-  get paypalEnabled() {
-    return process.env.PAYPAL_ENABLED !== "false";
+  /** Reversible toggle: set to the literal string "false" to soft-fail past Stripe while it's not set up yet. */
+  get stripeEnabled() {
+    return process.env.STRIPE_ENABLED !== "false";
   },
 };

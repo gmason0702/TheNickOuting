@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         remindersSent++;
       }
 
-      if (env.paypalEnabled) {
+      if (env.stripeEnabled) {
         const paymentRequestDecision = shouldSendPaymentRequest(
           row,
           env.perGolferFee,

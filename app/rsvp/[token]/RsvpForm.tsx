@@ -48,7 +48,7 @@ export function RsvpForm({
     try {
       const result = await submitRsvp(token, golferCount, receptionCount);
       if (result.status === "redirect") {
-        window.location.href = result.approveUrl;
+        window.location.href = result.checkoutUrl;
         return;
       }
       if (result.status === "confirmed") {

@@ -89,7 +89,7 @@ export function confirmationPaidEmail(params: {
     subject: `You're confirmed: ${params.golferCount} golfer(s) + ${params.receptionCount} at the reception, ${eventDate} (paid)`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>You're fully confirmed and paid up — ${params.golferCount} golfing, ${params.receptionCount} total at the reception — for ${eventDate}! PayPal will also send you a separate payment receipt for your records.</p>
+      <p>You're fully confirmed and paid up — ${params.golferCount} golfing, ${params.receptionCount} total at the reception — for ${eventDate}! You'll also get a separate payment receipt from Stripe for your records.</p>
       <p>See you on the course!</p>
     `),
   };

@@ -1,10 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 process.env.RESEND_API_KEY = "re_fake";
-process.env.PAYPAL_CLIENT_ID = "id";
-process.env.PAYPAL_CLIENT_SECRET = "secret";
-process.env.PAYPAL_WEBHOOK_ID = "wh";
-process.env.PAYPAL_PAYEE_EMAIL = "payee@example.com";
+process.env.STRIPE_SECRET_KEY = "sk_test_fake";
+process.env.STRIPE_WEBHOOK_SECRET = "whsec_fake";
 process.env.SITE_URL = "https://thenickouting.com";
 process.env.PER_GOLFER_FEE = "50";
 process.env.PER_RECEPTION_FEE = "20";
@@ -23,8 +21,8 @@ vi.mock("@/lib/sheets", () => ({
 const sendEmail = vi.fn();
 vi.mock("@/lib/email", () => ({ sendEmail }));
 
-const createOrder = vi.fn();
-vi.mock("@/lib/paypal", () => ({ createOrder }));
+const createCheckoutSession = vi.fn();
+vi.mock("@/lib/stripe", () => ({ createCheckoutSession }));
 
 const { submitJoin } = await import("./actions");
 
@@ -37,8 +35,8 @@ beforeEach(() => {
   getTotalGolferCount.mockReset();
   getTotalGolferCount.mockResolvedValue(0);
   sendEmail.mockReset();
-  createOrder.mockReset();
-  delete process.env.PAYPAL_ENABLED;
+  createCheckoutSession.mockReset();
+  delete process.env.STRIPE_ENABLED;
   delete process.env.WALKIN_ENABLED;
 });
 
@@ -108,7 +106,7 @@ describe("submitJoin", () => {
         rsvpToken: "fresh-token",
       });
       expect(updateRsvpCounts).toHaveBeenCalledWith(52, 0, 0);
-      expect(createOrder).not.toHaveBeenCalled();
+      expect(createCheckoutSession).not.toHaveBeenCalled();
       expect(sendEmail).toHaveBeenCalledTimes(1);
       expect(sendEmail.mock.calls[0]?.[0]).toBe("jane@example.com");
       expect(result).toEqual({
@@ -124,32 +122,33 @@ describe("submitJoin", () => {
       expect(appendRow).toHaveBeenCalledWith(expect.objectContaining({ name: "Jane Golfer" }));
     });
 
-    it("creates a PayPal order for the bundled total when a golfer is added, using the fresh token", async () => {
-      createOrder.mockResolvedValue({
-        orderId: "ORDER1",
-        approveUrl: "https://paypal/approve/ORDER1",
+    it("creates a Stripe checkout session for the bundled total when a golfer is added, using the fresh token", async () => {
+      createCheckoutSession.mockResolvedValue({
+        sessionId: "cs_1",
+        checkoutUrl: "https://checkout.stripe.com/cs_1",
       });
 
       const result = await submitJoin("Jane Golfer", "jane@example.com", 1, 2);
 
       expect(updateRsvpCounts).toHaveBeenCalledWith(52, 1, 2);
-      expect(createOrder).toHaveBeenCalledWith({
+      expect(createCheckoutSession).toHaveBeenCalledWith({
         token: "fresh-token",
         amount: 70, // 1 golfer ($50, bundles 1 reception seat) + 1 billed reception seat ($20)
+        customerEmail: "jane@example.com",
         returnUrl: "https://thenickouting.com/rsvp/fresh-token/confirmed",
         cancelUrl: "https://thenickouting.com/rsvp/fresh-token",
       });
       expect(sendEmail).not.toHaveBeenCalled();
-      expect(result).toEqual({ status: "redirect", approveUrl: "https://paypal/approve/ORDER1" });
+      expect(result).toEqual({ status: "redirect", checkoutUrl: "https://checkout.stripe.com/cs_1" });
     });
 
-    it("softly fails past PayPal when PAYPAL_ENABLED=false, sending a payment-pending email for the full amount owed", async () => {
-      process.env.PAYPAL_ENABLED = "false";
+    it("softly fails past Stripe when STRIPE_ENABLED=false, sending a payment-pending email for the full amount owed", async () => {
+      process.env.STRIPE_ENABLED = "false";
 
       const result = await submitJoin("Jane Golfer", "jane@example.com", 1, 4);
 
       expect(updateRsvpCounts).toHaveBeenCalledWith(52, 1, 4);
-      expect(createOrder).not.toHaveBeenCalled();
+      expect(createCheckoutSession).not.toHaveBeenCalled();
       expect(sendEmail).toHaveBeenCalledTimes(1);
       expect(sendEmail.mock.calls[0]?.[0]).toBe("jane@example.com");
       expect(result).toEqual({

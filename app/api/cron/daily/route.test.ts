@@ -30,7 +30,7 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     paymentStatus: "unpaid",
     paymentAmount: null,
     paidAt: null,
-    paypalOrderId: null,
+    paymentReference: null,
     inviteSentAt: null,
     lastReminderSentAt: null,
     reminderCount: 0,
@@ -63,7 +63,7 @@ afterEach(() => {
   vi.useRealTimers();
   delete process.env.CRON_SECRET;
   delete process.env.AUTOMATED_SENDING_ENABLED;
-  delete process.env.PAYPAL_ENABLED;
+  delete process.env.STRIPE_ENABLED;
 });
 
 describe("daily cron route", () => {
@@ -185,7 +185,7 @@ describe("daily cron route", () => {
     const body = await res.json();
 
     expect(body.remindersSent).toBe(0);
-    // PAYPAL_ENABLED defaults on, so the same run's payment-request check fires instead.
+    // STRIPE_ENABLED defaults on, so the same run's payment-request check fires instead.
     expect(body.paymentRequestsSent).toBe(1);
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
@@ -283,8 +283,8 @@ describe("daily cron route", () => {
       expect(updatePaymentRequestSent).toHaveBeenCalledWith(2, "2026-09-02");
     });
 
-    it("skips when PAYPAL_ENABLED=false", async () => {
-      process.env.PAYPAL_ENABLED = "false";
+    it("skips when STRIPE_ENABLED=false", async () => {
+      process.env.STRIPE_ENABLED = "false";
       vi.useFakeTimers();
       vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
 

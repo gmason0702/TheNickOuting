@@ -38,7 +38,7 @@ export default async function ConfirmedPage({
         <EventHead />
         <h1>Finishing up your payment</h1>
         <p className="lede">
-          We&apos;re confirming your payment with PayPal — this can take a moment. You&apos;ll get a
+          We&apos;re confirming your payment — this can take a moment. You&apos;ll get a
           confirmation email as soon as it&apos;s done. If anything looks off, you can revisit your
           RSVP link at any time.
         </p>

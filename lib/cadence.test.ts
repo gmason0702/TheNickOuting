@@ -40,7 +40,7 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     paymentStatus: "unpaid",
     paymentAmount: null,
     paidAt: null,
-    paypalOrderId: null,
+    paymentReference: null,
     inviteSentAt: null,
     lastReminderSentAt: null,
     reminderCount: 0,
