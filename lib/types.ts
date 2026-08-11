@@ -10,7 +10,7 @@ export interface InviteRow {
   paymentStatus: "unpaid" | "paid";
   paymentAmount: number | null;
   paidAt: string | null;
-  paypalOrderId: string | null;
+  paymentReference: string | null;
   inviteSentAt: string | null;
   lastReminderSentAt: string | null;
   reminderCount: number;

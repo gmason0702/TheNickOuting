@@ -2,10 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { InviteRow } from "@/lib/types";
 
 process.env.RESEND_API_KEY = "re_fake";
-process.env.PAYPAL_CLIENT_ID = "id";
-process.env.PAYPAL_CLIENT_SECRET = "secret";
-process.env.PAYPAL_WEBHOOK_ID = "wh";
-process.env.PAYPAL_PAYEE_EMAIL = "payee@example.com";
+process.env.STRIPE_SECRET_KEY = "sk_test_fake";
+process.env.STRIPE_WEBHOOK_SECRET = "whsec_fake";
 process.env.SITE_URL = "https://thenickouting.com";
 process.env.PER_GOLFER_FEE = "50";
 process.env.PER_RECEPTION_FEE = "20";
@@ -18,8 +16,8 @@ vi.mock("@/lib/sheets", () => ({ findRowByToken, updateRsvpCounts, getTotalGolfe
 const sendEmail = vi.fn();
 vi.mock("@/lib/email", () => ({ sendEmail }));
 
-const createOrder = vi.fn();
-vi.mock("@/lib/paypal", () => ({ createOrder }));
+const createCheckoutSession = vi.fn();
+vi.mock("@/lib/stripe", () => ({ createCheckoutSession }));
 
 const { submitRsvp } = await import("./actions");
 
@@ -35,7 +33,7 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     paymentStatus: "unpaid",
     paymentAmount: null,
     paidAt: null,
-    paypalOrderId: null,
+    paymentReference: null,
     inviteSentAt: "2026-08-01",
     lastReminderSentAt: null,
     reminderCount: 0,
@@ -50,8 +48,8 @@ beforeEach(() => {
   getTotalGolferCount.mockReset();
   getTotalGolferCount.mockResolvedValue(0);
   sendEmail.mockReset();
-  createOrder.mockReset();
-  delete process.env.PAYPAL_ENABLED;
+  createCheckoutSession.mockReset();
+  delete process.env.STRIPE_ENABLED;
 });
 
 describe("submitRsvp", () => {
@@ -91,7 +89,10 @@ describe("submitRsvp", () => {
     it("allows a new golfer when under capacity", async () => {
       findRowByToken.mockResolvedValue(row({ golfRsvpCount: 0 }));
       getTotalGolferCount.mockResolvedValue(49);
-      createOrder.mockResolvedValue({ orderId: "ORDER4", approveUrl: "https://paypal/approve/ORDER4" });
+      createCheckoutSession.mockResolvedValue({
+        sessionId: "cs_4",
+        checkoutUrl: "https://checkout.stripe.com/cs_4",
+      });
 
       const result = await submitRsvp("tok-abc", 1, 0);
 
@@ -102,7 +103,10 @@ describe("submitRsvp", () => {
     it("lets someone already golfing resubmit even if the field has since filled up", async () => {
       findRowByToken.mockResolvedValue(row({ golfRsvpCount: 1, receptionCount: 1 }));
       getTotalGolferCount.mockResolvedValue(50);
-      createOrder.mockResolvedValue({ orderId: "ORDER5", approveUrl: "https://paypal/approve/ORDER5" });
+      createCheckoutSession.mockResolvedValue({
+        sessionId: "cs_5",
+        checkoutUrl: "https://checkout.stripe.com/cs_5",
+      });
 
       const result = await submitRsvp("tok-abc", 1, 2);
 
@@ -119,13 +123,13 @@ describe("submitRsvp", () => {
     });
   });
 
-  it("writes counts, sends the free confirmation, and skips PayPal for the true decline (0 golfers, 0 reception)", async () => {
+  it("writes counts, sends the free confirmation, and skips Stripe for the true decline (0 golfers, 0 reception)", async () => {
     findRowByToken.mockResolvedValue(row());
 
     const result = await submitRsvp("tok-abc", 0, 0);
 
     expect(updateRsvpCounts).toHaveBeenCalledWith(7, 0, 0);
-    expect(createOrder).not.toHaveBeenCalled();
+    expect(createCheckoutSession).not.toHaveBeenCalled();
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
     expect(result).toEqual({
@@ -142,43 +146,50 @@ describe("submitRsvp", () => {
     [1, 2, 70], // one reception seat is bundled free, the second is billed
     [1, 4, 110], // golfer fee plus three billed reception seats beyond the bundled one
   ])(
-    "creates a PayPal order for the correct bundled total (golferCount=%i, receptionCount=%i -> $%i) and sends no confirmation email yet",
+    "creates a Stripe checkout session for the correct bundled total (golferCount=%i, receptionCount=%i -> $%i) and sends no confirmation email yet",
     async (golferCount, receptionCount, expectedAmount) => {
       findRowByToken.mockResolvedValue(row());
-      createOrder.mockResolvedValue({ orderId: "ORDER1", approveUrl: "https://paypal/approve/ORDER1" });
+      createCheckoutSession.mockResolvedValue({
+        sessionId: "cs_1",
+        checkoutUrl: "https://checkout.stripe.com/cs_1",
+      });
 
       const result = await submitRsvp("tok-abc", golferCount, receptionCount);
 
       expect(updateRsvpCounts).toHaveBeenCalledWith(7, golferCount, receptionCount);
-      expect(createOrder).toHaveBeenCalledWith({
+      expect(createCheckoutSession).toHaveBeenCalledWith({
         token: "tok-abc",
         amount: expectedAmount,
+        customerEmail: "attersons@example.com",
         returnUrl: "https://thenickouting.com/rsvp/tok-abc/confirmed",
         cancelUrl: "https://thenickouting.com/rsvp/tok-abc",
       });
       expect(sendEmail).not.toHaveBeenCalled();
-      expect(result).toEqual({ status: "redirect", approveUrl: "https://paypal/approve/ORDER1" });
+      expect(result).toEqual({ status: "redirect", checkoutUrl: "https://checkout.stripe.com/cs_1" });
     },
   );
 
-  it("re-creates a fresh PayPal order on resubmission after an abandoned checkout, using currently saved counts as the base", async () => {
+  it("re-creates a fresh Stripe checkout session on resubmission after an abandoned checkout, using currently saved counts as the base", async () => {
     findRowByToken.mockResolvedValue(row({ golfRsvpCount: 1, receptionCount: 4 }));
-    createOrder.mockResolvedValue({ orderId: "ORDER2", approveUrl: "https://paypal/approve/ORDER2" });
+    createCheckoutSession.mockResolvedValue({
+      sessionId: "cs_2",
+      checkoutUrl: "https://checkout.stripe.com/cs_2",
+    });
 
     const result = await submitRsvp("tok-abc", 1, 4);
 
-    expect(createOrder).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ status: "redirect", approveUrl: "https://paypal/approve/ORDER2" });
+    expect(createCheckoutSession).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ status: "redirect", checkoutUrl: "https://checkout.stripe.com/cs_2" });
   });
 
-  it("softly fails past PayPal when PAYPAL_ENABLED=false, writing counts and sending a payment-pending email for the full amount owed", async () => {
-    process.env.PAYPAL_ENABLED = "false";
+  it("softly fails past Stripe when STRIPE_ENABLED=false, writing counts and sending a payment-pending email for the full amount owed", async () => {
+    process.env.STRIPE_ENABLED = "false";
     findRowByToken.mockResolvedValue(row());
 
     const result = await submitRsvp("tok-abc", 1, 4);
 
     expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 4);
-    expect(createOrder).not.toHaveBeenCalled();
+    expect(createCheckoutSession).not.toHaveBeenCalled();
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
     expect(result).toEqual({
@@ -189,8 +200,8 @@ describe("submitRsvp", () => {
     });
   });
 
-  it("PAYPAL_ENABLED=false does not affect the true decline (0/0), which is already free", async () => {
-    process.env.PAYPAL_ENABLED = "false";
+  it("STRIPE_ENABLED=false does not affect the true decline (0/0), which is already free", async () => {
+    process.env.STRIPE_ENABLED = "false";
     findRowByToken.mockResolvedValue(row());
 
     const result = await submitRsvp("tok-abc", 0, 0);
@@ -214,7 +225,7 @@ describe("submitRsvp", () => {
       const result = await submitRsvp("tok-abc", 1, 0);
 
       expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 0);
-      expect(createOrder).not.toHaveBeenCalled();
+      expect(createCheckoutSession).not.toHaveBeenCalled();
       expect(result).toEqual({
         status: "confirmed",
         golferCount: 1,
@@ -228,17 +239,21 @@ describe("submitRsvp", () => {
       findRowByToken.mockResolvedValue(
         row({ paymentStatus: "paid", paymentAmount: 70, golfRsvpCount: 1, receptionCount: 2 }),
       );
-      createOrder.mockResolvedValue({ orderId: "ORDER3", approveUrl: "https://paypal/approve/ORDER3" });
+      createCheckoutSession.mockResolvedValue({
+        sessionId: "cs_3",
+        checkoutUrl: "https://checkout.stripe.com/cs_3",
+      });
 
       const result = await submitRsvp("tok-abc", 1, 4);
 
-      expect(createOrder).toHaveBeenCalledWith({
+      expect(createCheckoutSession).toHaveBeenCalledWith({
         token: "tok-abc",
         amount: 40,
+        customerEmail: "attersons@example.com",
         returnUrl: "https://thenickouting.com/rsvp/tok-abc/confirmed",
         cancelUrl: "https://thenickouting.com/rsvp/tok-abc",
       });
-      expect(result).toEqual({ status: "redirect", approveUrl: "https://paypal/approve/ORDER3" });
+      expect(result).toEqual({ status: "redirect", checkoutUrl: "https://checkout.stripe.com/cs_3" });
     });
 
     it("resubmitting the exact same counts after paying owes nothing further and carries no refund note", async () => {
@@ -246,7 +261,7 @@ describe("submitRsvp", () => {
 
       const result = await submitRsvp("tok-abc", 1, 0);
 
-      expect(createOrder).not.toHaveBeenCalled();
+      expect(createCheckoutSession).not.toHaveBeenCalled();
       expect(result).toEqual({
         status: "confirmed",
         golferCount: 1,
@@ -255,15 +270,15 @@ describe("submitRsvp", () => {
       });
     });
 
-    it("PAYPAL_ENABLED=false still charges only the incremental difference for an already-paid row", async () => {
-      process.env.PAYPAL_ENABLED = "false";
+    it("STRIPE_ENABLED=false still charges only the incremental difference for an already-paid row", async () => {
+      process.env.STRIPE_ENABLED = "false";
       findRowByToken.mockResolvedValue(
         row({ paymentStatus: "paid", paymentAmount: 70, golfRsvpCount: 1, receptionCount: 2 }),
       );
 
       const result = await submitRsvp("tok-abc", 1, 4);
 
-      expect(createOrder).not.toHaveBeenCalled();
+      expect(createCheckoutSession).not.toHaveBeenCalled();
       expect(result).toEqual({
         status: "confirmed-payment-pending",
         golferCount: 1,

@@ -57,7 +57,7 @@ export function JoinForm({ fee, receptionFee, othersGolferCount }: Props) {
         return;
       }
       if (result.status === "redirect") {
-        window.location.href = result.approveUrl;
+        window.location.href = result.checkoutUrl;
         return;
       }
       setConfirmed({

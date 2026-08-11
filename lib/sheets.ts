@@ -59,7 +59,7 @@ function toInviteRow(values: string[], rowNumber: number): InviteRow {
     paymentStatus: values[9] === "paid" ? "paid" : "unpaid",
     paymentAmount: parseFloatOrNull(values[10]),
     paidAt: parseStringOrNull(values[11]),
-    paypalOrderId: parseStringOrNull(values[12]),
+    paymentReference: parseStringOrNull(values[12]),
     inviteSentAt: parseStringOrNull(values[13]),
     lastReminderSentAt: parseStringOrNull(values[14]),
     reminderCount: parseIntOrNull(values[15]) ?? 0,
@@ -137,7 +137,7 @@ export async function appendRow(newInvite: NewInvite): Promise<number> {
           "unpaid", // J payment_status
           "", // K payment_amount
           "", // L paid_at
-          "", // M paypal_order_id
+          "", // M payment_reference
           "", // N invite_sent_at
           "", // O last_reminder_sent_at
           0, // P reminder_count
@@ -174,7 +174,7 @@ export interface PaymentUpdate {
   paymentStatus: "paid" | "unpaid";
   paymentAmount: number;
   paidAt: string;
-  paypalOrderId: string;
+  paymentReference: string;
 }
 
 export async function updatePaymentStatus(
@@ -188,7 +188,7 @@ export async function updatePaymentStatus(
     valueInputOption: "RAW",
     requestBody: {
       values: [
-        [update.paymentStatus, update.paymentAmount, update.paidAt, update.paypalOrderId],
+        [update.paymentStatus, update.paymentAmount, update.paidAt, update.paymentReference],
       ],
     },
   });

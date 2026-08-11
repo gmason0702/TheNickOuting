@@ -63,7 +63,7 @@ interface SheetRowFields {
   payment_status: string;
   payment_amount: string;
   paid_at: string;
-  paypal_order_id: string;
+  payment_reference: string;
   invite_sent_at: string;
   last_reminder_sent_at: string;
   reminder_count: string;
@@ -84,7 +84,7 @@ function sheetRow(overrides: Partial<SheetRowFields> = {}): string[] {
     payment_status: "unpaid",
     payment_amount: "",
     paid_at: "",
-    paypal_order_id: "",
+    payment_reference: "",
     invite_sent_at: "",
     last_reminder_sent_at: "",
     reminder_count: "0",
@@ -104,7 +104,7 @@ function sheetRow(overrides: Partial<SheetRowFields> = {}): string[] {
     merged.payment_status,
     merged.payment_amount,
     merged.paid_at,
-    merged.paypal_order_id,
+    merged.payment_reference,
     merged.invite_sent_at,
     merged.last_reminder_sent_at,
     merged.reminder_count,
@@ -152,7 +152,7 @@ describe("getAllRows", () => {
             payment_status: "paid",
             payment_amount: "170",
             paid_at: "2026-08-20T12:00:00.000Z",
-            paypal_order_id: "ORDER1",
+            payment_reference: "cs_1",
             invite_sent_at: "2026-08-01",
             last_reminder_sent_at: "2026-08-15",
             reminder_count: "1",
@@ -170,7 +170,7 @@ describe("getAllRows", () => {
       paymentStatus: "paid",
       paymentAmount: 170,
       paidAt: "2026-08-20T12:00:00.000Z",
-      paypalOrderId: "ORDER1",
+      paymentReference: "cs_1",
       inviteSentAt: "2026-08-01",
       lastReminderSentAt: "2026-08-15",
       reminderCount: 1,
@@ -243,14 +243,14 @@ describe("updatePaymentStatus", () => {
       paymentStatus: "paid",
       paymentAmount: 170,
       paidAt: "2026-08-20T00:00:00.000Z",
-      paypalOrderId: "ORDER99",
+      paymentReference: "cs_99",
     });
 
     expect(valuesUpdate).toHaveBeenCalledTimes(1);
     const call = valuesUpdate.mock.calls[0]![0];
     expect(call.range).toBe("'Invites List - golf_invite_list'!J9:M9");
     expect(call.requestBody.values).toEqual([
-      ["paid", 170, "2026-08-20T00:00:00.000Z", "ORDER99"],
+      ["paid", 170, "2026-08-20T00:00:00.000Z", "cs_99"],
     ]);
   });
 });

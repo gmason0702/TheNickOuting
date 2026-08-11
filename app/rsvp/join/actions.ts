@@ -3,7 +3,7 @@
 import { MAX_GOLFERS } from "@/lib/capacity";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
-import * as paypal from "@/lib/paypal";
+import * as stripeLib from "@/lib/stripe";
 import { calculateTotal } from "@/lib/pricing";
 import { assertValidHeadcounts } from "@/lib/rsvpValidation";
 import * as sheets from "@/lib/sheets";
@@ -19,7 +19,7 @@ export type SubmitJoinResult =
       amountDue: number;
       rsvpLink: string;
     }
-  | { status: "redirect"; approveUrl: string };
+  | { status: "redirect"; checkoutUrl: string };
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -66,7 +66,7 @@ export async function submitJoin(
     return { status: "confirmed", golferCount, receptionCount, rsvpLink };
   }
 
-  if (!env.paypalEnabled) {
+  if (!env.stripeEnabled) {
     await sendEmail(
       email,
       confirmationPaymentPendingEmail({
@@ -83,12 +83,13 @@ export async function submitJoin(
   // Once appended, this row is an ordinary invite row -- an abandoned/failed
   // checkout falls back to the existing per-token page (same as any other
   // invite), not back to the join form, so a retry never creates a duplicate row.
-  const order = await paypal.createOrder({
+  const session = await stripeLib.createCheckoutSession({
     token,
     amount: total,
+    customerEmail: email,
     returnUrl: `${env.siteUrl}/rsvp/${token}/confirmed`,
     cancelUrl: `${env.siteUrl}/rsvp/${token}`,
   });
 
-  return { status: "redirect", approveUrl: order.approveUrl };
+  return { status: "redirect", checkoutUrl: session.checkoutUrl };
 }
