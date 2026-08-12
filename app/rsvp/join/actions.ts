@@ -11,11 +11,18 @@ import { confirmationFreeEmail, confirmationPaymentPendingEmail } from "@/lib/te
 
 export type SubmitJoinResult =
   | { status: "closed" }
-  | { status: "confirmed"; golferCount: number; receptionCount: number; rsvpLink: string }
+  | {
+      status: "confirmed";
+      golferCount: number;
+      receptionAdultCount: number;
+      receptionChildCount: number;
+      rsvpLink: string;
+    }
   | {
       status: "confirmed-payment-pending";
       golferCount: number;
-      receptionCount: number;
+      receptionAdultCount: number;
+      receptionChildCount: number;
       amountDue: number;
       rsvpLink: string;
     }
@@ -29,14 +36,15 @@ export async function submitJoin(
   name: string,
   email: string,
   golferCount: number,
-  receptionCount: number,
+  receptionAdultCount: number,
+  receptionChildCount: number,
 ): Promise<SubmitJoinResult> {
   if (!env.walkinEnabled) return { status: "closed" };
 
   const trimmedName = name.trim();
   if (!trimmedName) throw new Error("Name is required.");
   if (!isValidEmail(email)) throw new Error("Enter a valid email address.");
-  assertValidHeadcounts(golferCount, receptionCount);
+  assertValidHeadcounts(golferCount, receptionAdultCount, receptionChildCount);
 
   if (golferCount > 0) {
     const totalGolfers = await sheets.getTotalGolferCount();
@@ -47,9 +55,9 @@ export async function submitJoin(
 
   const token = await sheets.generateUniqueToken();
   const rowNumber = await sheets.appendRow({ name: trimmedName, email, rsvpToken: token });
-  await sheets.updateRsvpCounts(rowNumber, golferCount, receptionCount);
+  await sheets.updateRsvpCounts(rowNumber, golferCount, receptionAdultCount, receptionChildCount);
 
-  const total = calculateTotal(golferCount, receptionCount, env.perGolferFee, env.perReceptionFee);
+  const total = calculateTotal(golferCount, receptionAdultCount, env.perGolferFee, env.perReceptionFee);
   const rsvpLink = `${env.siteUrl}/rsvp/${token}`;
 
   if (total <= 0) {
@@ -59,11 +67,12 @@ export async function submitJoin(
         name: trimmedName,
         rsvpLink,
         golferCount,
-        receptionCount,
+        receptionAdultCount,
+        receptionChildCount,
         refundNote: false,
       }),
     );
-    return { status: "confirmed", golferCount, receptionCount, rsvpLink };
+    return { status: "confirmed", golferCount, receptionAdultCount, receptionChildCount, rsvpLink };
   }
 
   if (!env.stripeEnabled) {
@@ -73,11 +82,19 @@ export async function submitJoin(
         name: trimmedName,
         rsvpLink,
         golferCount,
-        receptionCount,
+        receptionAdultCount,
+        receptionChildCount,
         amountDue: total,
       }),
     );
-    return { status: "confirmed-payment-pending", golferCount, receptionCount, amountDue: total, rsvpLink };
+    return {
+      status: "confirmed-payment-pending",
+      golferCount,
+      receptionAdultCount,
+      receptionChildCount,
+      amountDue: total,
+      rsvpLink,
+    };
   }
 
   // Once appended, this row is an ordinary invite row -- an abandoned/failed

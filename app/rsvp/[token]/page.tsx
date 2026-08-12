@@ -23,7 +23,8 @@ export default async function RsvpPage({
       fee={env.perGolferFee}
       receptionFee={env.perReceptionFee}
       initialGolferCount={row.golfRsvpCount ?? 0}
-      initialReceptionCount={row.receptionCount ?? 0}
+      initialReceptionAdultCount={row.receptionAdultCount ?? 0}
+      initialReceptionChildCount={row.receptionChildCount ?? 0}
       othersGolferCount={othersGolferCount}
     />
   );

@@ -5,7 +5,8 @@ export interface InviteRow {
   email: string;
   golfInviteTier: number | null;
   golfRsvpCount: number | null;
-  receptionCount: number | null;
+  receptionAdultCount: number | null;
+  receptionChildCount: number | null;
   rsvpToken: string;
   paymentStatus: "unpaid" | "paid";
   paymentAmount: number | null;

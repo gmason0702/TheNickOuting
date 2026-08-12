@@ -98,7 +98,8 @@ export async function GET(request: NextRequest) {
               name: row.name,
               rsvpLink,
               golferCount: row.golfRsvpCount ?? 0,
-              receptionCount: row.receptionCount ?? 0,
+              receptionAdultCount: row.receptionAdultCount ?? 0,
+              receptionChildCount: row.receptionChildCount ?? 0,
               amountDue: paymentRequestDecision.amountDue,
             }),
           );

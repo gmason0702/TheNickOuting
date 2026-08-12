@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
     confirmationPaidEmail({
       name: row.name,
       golferCount: row.golfRsvpCount ?? 0,
-      receptionCount: row.receptionCount ?? 0,
+      receptionAdultCount: row.receptionAdultCount ?? 0,
+      receptionChildCount: row.receptionChildCount ?? 0,
     }),
   );
 

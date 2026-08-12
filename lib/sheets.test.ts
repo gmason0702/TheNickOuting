@@ -68,6 +68,7 @@ interface SheetRowFields {
   last_reminder_sent_at: string;
   reminder_count: string;
   payment_request_sent_at: string;
+  reception_child_count: string;
 }
 
 function sheetRow(overrides: Partial<SheetRowFields> = {}): string[] {
@@ -89,6 +90,7 @@ function sheetRow(overrides: Partial<SheetRowFields> = {}): string[] {
     last_reminder_sent_at: "",
     reminder_count: "0",
     payment_request_sent_at: "",
+    reception_child_count: "",
   };
   const merged: SheetRowFields = { ...base, ...overrides };
   return [
@@ -109,6 +111,7 @@ function sheetRow(overrides: Partial<SheetRowFields> = {}): string[] {
     merged.last_reminder_sent_at,
     merged.reminder_count,
     merged.payment_request_sent_at,
+    merged.reception_child_count,
   ];
 }
 
@@ -135,7 +138,8 @@ describe("getAllRows", () => {
       name: "Austen Levihn-Coon",
       golfInviteTier: 1,
       golfRsvpCount: null,
-      receptionCount: null,
+      receptionAdultCount: null,
+      receptionChildCount: null,
       paymentStatus: "unpaid",
       reminderCount: 0,
     });
@@ -149,6 +153,7 @@ describe("getAllRows", () => {
           sheetRow({
             golf_rsvp_count: "2",
             reception_count: "4",
+            reception_child_count: "3",
             payment_status: "paid",
             payment_amount: "170",
             paid_at: "2026-08-20T12:00:00.000Z",
@@ -166,7 +171,8 @@ describe("getAllRows", () => {
 
     expect(r).toMatchObject({
       golfRsvpCount: 2,
-      receptionCount: 4,
+      receptionAdultCount: 4,
+      receptionChildCount: 3,
       paymentStatus: "paid",
       paymentAmount: 170,
       paidAt: "2026-08-20T12:00:00.000Z",
@@ -222,9 +228,9 @@ describe("getTotalGolferCount", () => {
 });
 
 describe("updateRsvpCounts", () => {
-  it("writes golf_rsvp_count and reception_count as a single targeted batch update", async () => {
+  it("writes golf_rsvp_count, reception_adult_count, and reception_child_count as a single targeted batch update", async () => {
     valuesBatchUpdate.mockResolvedValue({});
-    await updateRsvpCounts(5, 2, 4);
+    await updateRsvpCounts(5, 2, 4, 1);
 
     expect(valuesBatchUpdate).toHaveBeenCalledTimes(1);
     const call = valuesBatchUpdate.mock.calls[0]![0];
@@ -232,6 +238,7 @@ describe("updateRsvpCounts", () => {
     expect(call.requestBody.data).toEqual([
       { range: "'Invites List - golf_invite_list'!E5", values: [[2]] },
       { range: "'Invites List - golf_invite_list'!H5", values: [[4]] },
+      { range: "'Invites List - golf_invite_list'!R5", values: [[1]] },
     ]);
   });
 });
@@ -324,9 +331,9 @@ describe("generateUniqueToken", () => {
 });
 
 describe("appendRow", () => {
-  it("appends all 17 columns in order, leaving tier/counts/manual columns blank", async () => {
+  it("appends all 18 columns in order, leaving tier/counts/manual columns blank", async () => {
     valuesAppend.mockResolvedValue({
-      data: { updates: { updatedRange: "'Invites List - golf_invite_list'!A52:Q52" } },
+      data: { updates: { updatedRange: "'Invites List - golf_invite_list'!A52:R52" } },
     });
 
     const rowNumber = await appendRow({
@@ -339,7 +346,7 @@ describe("appendRow", () => {
     expect(valuesAppend).toHaveBeenCalledTimes(1);
     const call = valuesAppend.mock.calls[0]![0];
     expect(call.spreadsheetId).toBe("sheet-id-123");
-    expect(call.range).toBe("'Invites List - golf_invite_list'!A2:Q");
+    expect(call.range).toBe("'Invites List - golf_invite_list'!A2:R");
     expect(call.insertDataOption).toBe("INSERT_ROWS");
     expect(call.requestBody.values).toEqual([
       [
@@ -359,6 +366,7 @@ describe("appendRow", () => {
         "",
         "",
         0,
+        "",
         "",
       ],
     ]);

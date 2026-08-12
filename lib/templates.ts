@@ -9,6 +9,13 @@ function wrap(bodyHtml: string): string {
   return `<div style="font-family: sans-serif; line-height: 1.5; color: #1c261e;">${bodyHtml}<p>Have any questions? Email <a href="mailto:thenickouting@gmail.com">thenickouting@gmail.com</a>.</p></div>`;
 }
 
+/** Kids are always free, so we only mention them when there are any. */
+function formatReceptionHeadcount(adultCount: number, childCount: number): string {
+  const adults = `${adultCount} adult${adultCount === 1 ? "" : "s"}`;
+  if (childCount === 0) return adults;
+  return `${adults} + ${childCount} child${childCount === 1 ? "" : "ren"}`;
+}
+
 export function initialInviteEmail(params: {
   name: string;
   rsvpLink: string;
@@ -22,7 +29,7 @@ export function initialInviteEmail(params: {
       <p>Hi ${params.name},</p>
       <p>You're invited to this year's golf outing and reception on <strong>${eventDate}</strong>! Whether you're playing golf or just joining us for the reception afterward, we'd love to have you.</p>
       <p><strong>RSVP here:</strong> <a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
-      <p>Only one golf ticket per invite ($${params.golferFee}, includes a free reception seat for that golfer) — then tell us the total number of people from your group who'll be at the reception, including the golfer if they're staying ($${params.receptionFee} per person beyond your golf ticket).</p>
+      <p>Only one golf ticket per invite ($${params.golferFee}, includes a free adult reception seat for that golfer) — then tell us how many adults and children from your group will be at the reception, including the golfer if they're staying ($${params.receptionFee} per adult beyond your golf ticket — kids are free).</p>
       <p>Please RSVP if you can — see you on the course!</p>
     `),
   };
@@ -82,14 +89,16 @@ export function reminderFinalCallEmail(params: { name: string; rsvpLink: string 
 export function confirmationPaidEmail(params: {
   name: string;
   golferCount: number;
-  receptionCount: number;
+  receptionAdultCount: number;
+  receptionChildCount: number;
 }): EmailContent {
   const eventDate = formatEventDate();
+  const reception = formatReceptionHeadcount(params.receptionAdultCount, params.receptionChildCount);
   return {
-    subject: `You're confirmed: ${params.golferCount} golfer(s) + ${params.receptionCount} at the reception, ${eventDate} (paid)`,
+    subject: `You're confirmed: ${params.golferCount} golfer(s) + ${reception} at the reception, ${eventDate} (paid)`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>You're fully confirmed and paid up — ${params.golferCount} golfing, ${params.receptionCount} total at the reception — for ${eventDate}! You'll also get a separate payment receipt from Stripe for your records.</p>
+      <p>You're fully confirmed and paid up — ${params.golferCount} golfing, ${reception} at the reception — for ${eventDate}! You'll also get a separate payment receipt from Stripe for your records.</p>
       <p>See you on the course!</p>
     `),
   };
@@ -99,15 +108,17 @@ export function confirmationPaymentPendingEmail(params: {
   name: string;
   rsvpLink: string;
   golferCount: number;
-  receptionCount: number;
+  receptionAdultCount: number;
+  receptionChildCount: number;
   amountDue: number;
 }): EmailContent {
   const eventDate = formatEventDate();
+  const reception = formatReceptionHeadcount(params.receptionAdultCount, params.receptionChildCount);
   return {
     subject: `You're on the list for ${eventDate} — payment coming soon`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>You're confirmed for ${params.golferCount} golfer(s) and ${params.receptionCount} at the reception on ${eventDate} — you owe $${params.amountDue.toFixed(2)}. Payment collection isn't set up yet — we'll follow up separately with how to pay once it's ready. No action needed from you right now.</p>
+      <p>You're confirmed for ${params.golferCount} golfer(s) and ${reception} at the reception on ${eventDate} — you owe $${params.amountDue.toFixed(2)}. Payment collection isn't set up yet — we'll follow up separately with how to pay once it's ready. No action needed from you right now.</p>
       <p>Plans change? Revisit your link any time to update your headcounts: <a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
       <p>See you on the course!</p>
     `),
@@ -118,15 +129,17 @@ export function paymentRequestEmail(params: {
   name: string;
   rsvpLink: string;
   golferCount: number;
-  receptionCount: number;
+  receptionAdultCount: number;
+  receptionChildCount: number;
   amountDue: number;
 }): EmailContent {
   const eventDate = formatEventDate();
+  const reception = formatReceptionHeadcount(params.receptionAdultCount, params.receptionChildCount);
   return {
     subject: `Payment is open: secure your spot for ${eventDate}`,
     html: wrap(`
       <p>Hi ${params.name},</p>
-      <p>Payment is now open! You're set for ${params.golferCount} golfer(s) and ${params.receptionCount} at the reception on ${eventDate} — to lock in your spot, you owe <strong>$${params.amountDue.toFixed(2)}</strong>.</p>
+      <p>Payment is now open! You're set for ${params.golferCount} golfer(s) and ${reception} at the reception on ${eventDate} — to lock in your spot, you owe <strong>$${params.amountDue.toFixed(2)}</strong>.</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
       <p>That same link also lets you update your headcounts first, if anything's changed, before paying.</p>
     `),
@@ -137,14 +150,16 @@ export function confirmationFreeEmail(params: {
   name: string;
   rsvpLink: string;
   golferCount: number;
-  receptionCount: number;
+  receptionAdultCount: number;
+  receptionChildCount: number;
   refundNote: boolean;
 }): EmailContent {
   const eventDate = formatEventDate();
-  const isDecline = params.golferCount === 0 && params.receptionCount === 0;
+  const isDecline =
+    params.golferCount === 0 && params.receptionAdultCount === 0 && params.receptionChildCount === 0;
   const body = isDecline
     ? "You're marked as not attending this year."
-    : `You're confirmed for ${params.golferCount} golfer(s) and ${params.receptionCount} at the reception — no additional payment is due.`;
+    : `You're confirmed for ${params.golferCount} golfer(s) and ${formatReceptionHeadcount(params.receptionAdultCount, params.receptionChildCount)} at the reception — no additional payment is due.`;
   const refundLine = params.refundNote
     ? " Since this is less than what you'd already paid, any refund will need to be coordinated with us directly — just reply to this email."
     : "";

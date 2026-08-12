@@ -16,7 +16,8 @@ type Step = "details" | "counts";
 
 interface ConfirmedState {
   golferCount: number;
-  receptionCount: number;
+  receptionAdultCount: number;
+  receptionChildCount: number;
   paymentPending: boolean;
   amountDue: number;
   rsvpLink: string;
@@ -27,7 +28,8 @@ export function JoinForm({ fee, receptionFee, othersGolferCount }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [golfing, setGolfing] = useState(false);
-  const [receptionCount, setReceptionCount] = useState(0);
+  const [receptionAdultCount, setReceptionAdultCount] = useState(0);
+  const [receptionChildCount, setReceptionChildCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<ConfirmedState | null>(null);
@@ -51,7 +53,7 @@ export function JoinForm({ fee, receptionFee, othersGolferCount }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await submitJoin(name, email, golferCount, receptionCount);
+      const result = await submitJoin(name, email, golferCount, receptionAdultCount, receptionChildCount);
       if (result.status === "closed") {
         setError("Walk-in registration just closed. Please check back later.");
         return;
@@ -62,7 +64,8 @@ export function JoinForm({ fee, receptionFee, othersGolferCount }: Props) {
       }
       setConfirmed({
         golferCount: result.golferCount,
-        receptionCount: result.receptionCount,
+        receptionAdultCount: result.receptionAdultCount,
+        receptionChildCount: result.receptionChildCount,
         paymentPending: result.status === "confirmed-payment-pending",
         amountDue: result.status === "confirmed-payment-pending" ? result.amountDue : 0,
         rsvpLink: result.rsvpLink,
@@ -77,10 +80,11 @@ export function JoinForm({ fee, receptionFee, othersGolferCount }: Props) {
   }
 
   if (confirmed) {
+    const reception = confirmed.receptionAdultCount > 0 || confirmed.receptionChildCount > 0;
     return (
       <main className="frame">
         <div className="card">
-          <EventHead golfing={confirmed.golferCount > 0} reception={confirmed.receptionCount > 0} />
+          <EventHead golfing={confirmed.golferCount > 0} reception={reception} />
           <h1>You&apos;re on the list, {name.split(" ")[0]}</h1>
           <p className="lede">
             {confirmed.paymentPending
@@ -88,7 +92,7 @@ export function JoinForm({ fee, receptionFee, othersGolferCount }: Props) {
               : "No payment is due."}{" "}
             We&apos;ve emailed {email} a personal link — use it any time to update your headcounts.
           </p>
-          <CalendarLinks golfing={confirmed.golferCount > 0} reception={confirmed.receptionCount > 0} />
+          <CalendarLinks golfing={confirmed.golferCount > 0} reception={reception} />
           <p className="note">Your link: {confirmed.rsvpLink}</p>
         </div>
       </main>
@@ -165,8 +169,10 @@ export function JoinForm({ fee, receptionFee, othersGolferCount }: Props) {
           receptionFee={receptionFee}
           golfing={golfing}
           onGolfingChange={setGolfing}
-          receptionCount={receptionCount}
-          onReceptionCountChange={setReceptionCount}
+          receptionAdultCount={receptionAdultCount}
+          onReceptionAdultCountChange={setReceptionAdultCount}
+          receptionChildCount={receptionChildCount}
+          onReceptionChildCountChange={setReceptionChildCount}
           othersGolferCount={othersGolferCount}
         />
 

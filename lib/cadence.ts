@@ -69,7 +69,7 @@ function isOnOrAfter(dateStr: string, thresholdStr: string): boolean {
 
 /** True once they've told us a headcount at all -- independent of whether golf is paid for yet. */
 export function hasResponded(row: InviteRow): boolean {
-  return row.receptionCount !== null;
+  return row.receptionAdultCount !== null;
 }
 
 export function tierSendDate(tier: number): string {
@@ -135,7 +135,12 @@ export function shouldSendPaymentRequest(
   if (!hasResponded(row)) return { send: false };
   if (row.paymentRequestSentAt !== null) return { send: false };
 
-  const total = calculateTotal(row.golfRsvpCount ?? 0, row.receptionCount ?? 0, golferFee, receptionFee);
+  const total = calculateTotal(
+    row.golfRsvpCount ?? 0,
+    row.receptionAdultCount ?? 0,
+    golferFee,
+    receptionFee,
+  );
   const alreadyPaid = row.paymentStatus === "paid" ? row.paymentAmount ?? 0 : 0;
   const amountDue = total - alreadyPaid;
 

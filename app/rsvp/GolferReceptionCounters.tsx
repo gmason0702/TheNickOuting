@@ -7,8 +7,10 @@ interface Props {
   receptionFee: number;
   golfing: boolean;
   onGolfingChange: (golfing: boolean) => void;
-  receptionCount: number;
-  onReceptionCountChange: (count: number) => void;
+  receptionAdultCount: number;
+  onReceptionAdultCountChange: (count: number) => void;
+  receptionChildCount: number;
+  onReceptionChildCountChange: (count: number) => void;
   /** Golfers already on the books across every other invite, i.e. excluding this one. */
   othersGolferCount: number;
 }
@@ -18,8 +20,10 @@ export function GolferReceptionCounters({
   receptionFee,
   golfing,
   onGolfingChange,
-  receptionCount,
-  onReceptionCountChange,
+  receptionAdultCount,
+  onReceptionAdultCountChange,
+  receptionChildCount,
+  onReceptionChildCountChange,
   othersGolferCount,
 }: Props) {
   const golferCount = golfing ? 1 : 0;
@@ -63,23 +67,48 @@ export function GolferReceptionCounters({
 
       <div className="counter-row">
         <div className="counter-body">
-          <span className="counter-title">How many are coming to the reception?</span>
-          <span className="counter-sub">${receptionFee} per person</span>
+          <span className="counter-title">How many adults are coming to the reception?</span>
+          <span className="counter-sub">${receptionFee} per adult</span>
         </div>
         <div className="stepper">
           <button
             className="stepper-btn"
-            onClick={() => onReceptionCountChange(Math.max(0, receptionCount - 1))}
-            disabled={receptionCount === 0}
-            aria-label="Decrease reception count"
+            onClick={() => onReceptionAdultCountChange(Math.max(0, receptionAdultCount - 1))}
+            disabled={receptionAdultCount === 0}
+            aria-label="Decrease adult reception count"
           >
             −
           </button>
-          <span className="stepper-value">{receptionCount}</span>
+          <span className="stepper-value">{receptionAdultCount}</span>
           <button
             className="stepper-btn"
-            onClick={() => onReceptionCountChange(receptionCount + 1)}
-            aria-label="Increase reception count"
+            onClick={() => onReceptionAdultCountChange(receptionAdultCount + 1)}
+            aria-label="Increase adult reception count"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div className="counter-row">
+        <div className="counter-body">
+          <span className="counter-title">How many children are coming to the reception?</span>
+          <span className="counter-sub">Free — just for our headcount</span>
+        </div>
+        <div className="stepper">
+          <button
+            className="stepper-btn"
+            onClick={() => onReceptionChildCountChange(Math.max(0, receptionChildCount - 1))}
+            disabled={receptionChildCount === 0}
+            aria-label="Decrease child reception count"
+          >
+            −
+          </button>
+          <span className="stepper-value">{receptionChildCount}</span>
+          <button
+            className="stepper-btn"
+            onClick={() => onReceptionChildCountChange(receptionChildCount + 1)}
+            aria-label="Increase child reception count"
           >
             +
           </button>

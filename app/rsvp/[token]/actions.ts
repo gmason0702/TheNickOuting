@@ -11,11 +11,18 @@ import { confirmationFreeEmail, confirmationPaymentPendingEmail } from "@/lib/te
 
 export type SubmitRsvpResult =
   | { status: "not-found" }
-  | { status: "confirmed"; golferCount: number; receptionCount: number; refundNote: boolean }
+  | {
+      status: "confirmed";
+      golferCount: number;
+      receptionAdultCount: number;
+      receptionChildCount: number;
+      refundNote: boolean;
+    }
   | {
       status: "confirmed-payment-pending";
       golferCount: number;
-      receptionCount: number;
+      receptionAdultCount: number;
+      receptionChildCount: number;
       amountDue: number;
     }
   | { status: "redirect"; checkoutUrl: string };
@@ -23,9 +30,10 @@ export type SubmitRsvpResult =
 export async function submitRsvp(
   token: string,
   golferCount: number,
-  receptionCount: number,
+  receptionAdultCount: number,
+  receptionChildCount: number,
 ): Promise<SubmitRsvpResult> {
-  assertValidHeadcounts(golferCount, receptionCount);
+  assertValidHeadcounts(golferCount, receptionAdultCount, receptionChildCount);
 
   const row = await sheets.findRowByToken(token);
   if (!row) return { status: "not-found" };
@@ -44,9 +52,9 @@ export async function submitRsvp(
   // actually coming takes priority. Refunds for a net decrease are handled
   // manually, outside this app; only a net increase triggers a new charge,
   // and only for the difference against what's already been paid.
-  await sheets.updateRsvpCounts(row.rowNumber, golferCount, receptionCount);
+  await sheets.updateRsvpCounts(row.rowNumber, golferCount, receptionAdultCount, receptionChildCount);
 
-  const total = calculateTotal(golferCount, receptionCount, env.perGolferFee, env.perReceptionFee);
+  const total = calculateTotal(golferCount, receptionAdultCount, env.perGolferFee, env.perReceptionFee);
   const alreadyPaid = row.paymentStatus === "paid" ? row.paymentAmount ?? 0 : 0;
   const amountDue = total - alreadyPaid;
   const rsvpLink = `${env.siteUrl}/rsvp/${token}`;
@@ -58,11 +66,18 @@ export async function submitRsvp(
         name: row.name,
         rsvpLink,
         golferCount,
-        receptionCount,
+        receptionAdultCount,
+        receptionChildCount,
         refundNote: amountDue < 0,
       }),
     );
-    return { status: "confirmed", golferCount, receptionCount, refundNote: amountDue < 0 };
+    return {
+      status: "confirmed",
+      golferCount,
+      receptionAdultCount,
+      receptionChildCount,
+      refundNote: amountDue < 0,
+    };
   }
 
   if (!env.stripeEnabled) {
@@ -72,11 +87,18 @@ export async function submitRsvp(
         name: row.name,
         rsvpLink,
         golferCount,
-        receptionCount,
+        receptionAdultCount,
+        receptionChildCount,
         amountDue,
       }),
     );
-    return { status: "confirmed-payment-pending", golferCount, receptionCount, amountDue };
+    return {
+      status: "confirmed-payment-pending",
+      golferCount,
+      receptionAdultCount,
+      receptionChildCount,
+      amountDue,
+    };
   }
 
   const session = await stripeLib.createCheckoutSession({
