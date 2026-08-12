@@ -1,13 +1,14 @@
 /**
- * Each golfer ticket bundles one reception seat for free. Only reception
- * headcount beyond the number of golfers is billed separately.
+ * Each golfer ticket bundles one adult reception seat for free. Only adult
+ * reception headcount beyond the number of golfers is billed separately.
+ * Children are always free and never enter this calculation.
  */
 export function calculateTotal(
   golferCount: number,
-  receptionCount: number,
+  receptionAdultCount: number,
   golferFee: number,
   receptionFee: number,
 ): number {
-  const billableReceptionCount = Math.max(0, receptionCount - golferCount);
-  return golferCount * golferFee + billableReceptionCount * receptionFee;
+  const billableAdultCount = Math.max(0, receptionAdultCount - golferCount);
+  return golferCount * golferFee + billableAdultCount * receptionFee;
 }

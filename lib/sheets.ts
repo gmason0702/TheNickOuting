@@ -4,12 +4,15 @@ import { env } from "./env";
 import type { InviteRow } from "./types";
 
 /**
- * Column layout of the real `Invites List - golf_invite_list` sheet (17 columns, A-Q).
+ * Column layout of the real `Invites List - golf_invite_list` sheet (18 columns, A-R).
  * Columns D/F/G (2026_golf_status, reception_invite, reception_status) exist in Gordon's
  * sheet but are intentionally left untouched by the app. Column Q (payment_request_sent_at)
  * tracks the one-time "secure your tickets" payment email, separate from invite_sent_at (N).
+ * Column H (reception_adult_count) predates the adult/child split -- every row that had
+ * already responded before the split keeps its count there, read as all-adult. Column R
+ * (reception_child_count) is new; blank/unset reads as 0 children, same as any other row.
  */
-const DATA_RANGE = "A2:Q";
+const DATA_RANGE = "A2:R";
 
 function quoteSheetName(name: string): string {
   return /[\s'!]/.test(name) ? `'${name.replace(/'/g, "''")}'` : name;
@@ -54,7 +57,7 @@ function toInviteRow(values: string[], rowNumber: number): InviteRow {
     email: values[1] ?? "",
     golfInviteTier: parseIntOrNull(values[2]),
     golfRsvpCount: parseIntOrNull(values[4]),
-    receptionCount: parseIntOrNull(values[7]),
+    receptionAdultCount: parseIntOrNull(values[7]),
     rsvpToken: values[8] ?? "",
     paymentStatus: values[9] === "paid" ? "paid" : "unpaid",
     paymentAmount: parseFloatOrNull(values[10]),
@@ -64,6 +67,7 @@ function toInviteRow(values: string[], rowNumber: number): InviteRow {
     lastReminderSentAt: parseStringOrNull(values[14]),
     reminderCount: parseIntOrNull(values[15]) ?? 0,
     paymentRequestSentAt: parseStringOrNull(values[16]),
+    receptionChildCount: parseIntOrNull(values[17]),
   };
 }
 
@@ -142,6 +146,7 @@ export async function appendRow(newInvite: NewInvite): Promise<number> {
           "", // O last_reminder_sent_at
           0, // P reminder_count
           "", // Q payment_request_sent_at
+          "", // R reception_child_count
         ],
       ],
     },
@@ -155,7 +160,8 @@ export async function appendRow(newInvite: NewInvite): Promise<number> {
 export async function updateRsvpCounts(
   rowNumber: number,
   golferCount: number,
-  receptionCount: number,
+  receptionAdultCount: number,
+  receptionChildCount: number,
 ): Promise<void> {
   const sheets = getClient();
   await sheets.spreadsheets.values.batchUpdate({
@@ -164,7 +170,8 @@ export async function updateRsvpCounts(
       valueInputOption: "RAW",
       data: [
         { range: range(`E${rowNumber}`), values: [[golferCount]] },
-        { range: range(`H${rowNumber}`), values: [[receptionCount]] },
+        { range: range(`H${rowNumber}`), values: [[receptionAdultCount]] },
+        { range: range(`R${rowNumber}`), values: [[receptionChildCount]] },
       ],
     },
   });

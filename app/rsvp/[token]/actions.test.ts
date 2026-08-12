@@ -28,7 +28,8 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     email: "attersons@example.com",
     golfInviteTier: 1,
     golfRsvpCount: null,
-    receptionCount: null,
+    receptionAdultCount: null,
+    receptionChildCount: null,
     rsvpToken: "tok-abc",
     paymentStatus: "unpaid",
     paymentAmount: null,
@@ -56,20 +57,21 @@ describe("submitRsvp", () => {
   it("returns not-found for an unknown token and writes nothing", async () => {
     findRowByToken.mockResolvedValue(null);
 
-    const result = await submitRsvp("bad-token", 0, 0);
+    const result = await submitRsvp("bad-token", 0, 0, 0);
 
     expect(result).toEqual({ status: "not-found" });
     expect(updateRsvpCounts).not.toHaveBeenCalled();
   });
 
   it("rejects negative or non-integer headcounts before touching the sheet", async () => {
-    await expect(submitRsvp("tok-abc", -1, 0)).rejects.toThrow();
-    await expect(submitRsvp("tok-abc", 1.5, 0)).rejects.toThrow();
+    await expect(submitRsvp("tok-abc", -1, 0, 0)).rejects.toThrow();
+    await expect(submitRsvp("tok-abc", 1.5, 0, 0)).rejects.toThrow();
+    await expect(submitRsvp("tok-abc", 0, 0, -1)).rejects.toThrow();
     expect(findRowByToken).not.toHaveBeenCalled();
   });
 
   it("rejects more than one golf ticket before touching the sheet", async () => {
-    await expect(submitRsvp("tok-abc", 2, 0)).rejects.toThrow(
+    await expect(submitRsvp("tok-abc", 2, 0, 0)).rejects.toThrow(
       "Only one golf ticket is allowed per email.",
     );
     expect(findRowByToken).not.toHaveBeenCalled();
@@ -80,7 +82,7 @@ describe("submitRsvp", () => {
       findRowByToken.mockResolvedValue(row({ golfRsvpCount: 0 }));
       getTotalGolferCount.mockResolvedValue(50);
 
-      await expect(submitRsvp("tok-abc", 1, 0)).rejects.toThrow(
+      await expect(submitRsvp("tok-abc", 1, 0, 0)).rejects.toThrow(
         "Golf is at maximum capacity — you can still RSVP for the reception.",
       );
       expect(updateRsvpCounts).not.toHaveBeenCalled();
@@ -94,30 +96,30 @@ describe("submitRsvp", () => {
         checkoutUrl: "https://checkout.stripe.com/cs_4",
       });
 
-      const result = await submitRsvp("tok-abc", 1, 0);
+      const result = await submitRsvp("tok-abc", 1, 0, 0);
 
-      expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 0);
+      expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 0, 0);
       expect(result).toMatchObject({ status: "redirect" });
     });
 
     it("lets someone already golfing resubmit even if the field has since filled up", async () => {
-      findRowByToken.mockResolvedValue(row({ golfRsvpCount: 1, receptionCount: 1 }));
+      findRowByToken.mockResolvedValue(row({ golfRsvpCount: 1, receptionAdultCount: 1 }));
       getTotalGolferCount.mockResolvedValue(50);
       createCheckoutSession.mockResolvedValue({
         sessionId: "cs_5",
         checkoutUrl: "https://checkout.stripe.com/cs_5",
       });
 
-      const result = await submitRsvp("tok-abc", 1, 2);
+      const result = await submitRsvp("tok-abc", 1, 2, 0);
 
-      expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 2);
+      expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 2, 0);
       expect(result).toMatchObject({ status: "redirect" });
     });
 
     it("doesn't check capacity at all when golferCount is 0", async () => {
       findRowByToken.mockResolvedValue(row());
 
-      await submitRsvp("tok-abc", 0, 0);
+      await submitRsvp("tok-abc", 0, 0, 0);
 
       expect(getTotalGolferCount).not.toHaveBeenCalled();
     });
@@ -126,37 +128,54 @@ describe("submitRsvp", () => {
   it("writes counts, sends the free confirmation, and skips Stripe for the true decline (0 golfers, 0 reception)", async () => {
     findRowByToken.mockResolvedValue(row());
 
-    const result = await submitRsvp("tok-abc", 0, 0);
+    const result = await submitRsvp("tok-abc", 0, 0, 0);
 
-    expect(updateRsvpCounts).toHaveBeenCalledWith(7, 0, 0);
+    expect(updateRsvpCounts).toHaveBeenCalledWith(7, 0, 0, 0);
     expect(createCheckoutSession).not.toHaveBeenCalled();
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
     expect(result).toEqual({
       status: "confirmed",
       golferCount: 0,
-      receptionCount: 0,
+      receptionAdultCount: 0,
+      receptionChildCount: 0,
+      refundNote: false,
+    });
+  });
+
+  it("a decline with children only (0 golfers, 0 adults, some kids) is still free, not a true decline", async () => {
+    findRowByToken.mockResolvedValue(row());
+
+    const result = await submitRsvp("tok-abc", 0, 0, 2);
+
+    expect(updateRsvpCounts).toHaveBeenCalledWith(7, 0, 0, 2);
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      status: "confirmed",
+      golferCount: 0,
+      receptionAdultCount: 0,
+      receptionChildCount: 2,
       refundNote: false,
     });
   });
 
   it.each([
-    [0, 3, 60], // reception-only bills every seat at the standalone fee
+    [0, 3, 60], // reception-only bills every adult seat at the standalone fee
     [1, 1, 50], // the golfer's bundled reception seat makes this free, total is just the golfer fee
     [1, 2, 70], // one reception seat is bundled free, the second is billed
     [1, 4, 110], // golfer fee plus three billed reception seats beyond the bundled one
   ])(
-    "creates a Stripe checkout session for the correct bundled total (golferCount=%i, receptionCount=%i -> $%i) and sends no confirmation email yet",
-    async (golferCount, receptionCount, expectedAmount) => {
+    "creates a Stripe checkout session for the correct bundled total (golferCount=%i, receptionAdultCount=%i -> $%i) and sends no confirmation email yet",
+    async (golferCount, receptionAdultCount, expectedAmount) => {
       findRowByToken.mockResolvedValue(row());
       createCheckoutSession.mockResolvedValue({
         sessionId: "cs_1",
         checkoutUrl: "https://checkout.stripe.com/cs_1",
       });
 
-      const result = await submitRsvp("tok-abc", golferCount, receptionCount);
+      const result = await submitRsvp("tok-abc", golferCount, receptionAdultCount, 0);
 
-      expect(updateRsvpCounts).toHaveBeenCalledWith(7, golferCount, receptionCount);
+      expect(updateRsvpCounts).toHaveBeenCalledWith(7, golferCount, receptionAdultCount, 0);
       expect(createCheckoutSession).toHaveBeenCalledWith({
         token: "tok-abc",
         amount: expectedAmount,
@@ -169,14 +188,30 @@ describe("submitRsvp", () => {
     },
   );
 
+  it("adding any number of children never changes the amount charged", async () => {
+    findRowByToken.mockResolvedValue(row());
+    createCheckoutSession.mockResolvedValue({
+      sessionId: "cs_1",
+      checkoutUrl: "https://checkout.stripe.com/cs_1",
+    });
+
+    const result = await submitRsvp("tok-abc", 1, 2, 6);
+
+    expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 2, 6);
+    expect(createCheckoutSession).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 70 }), // same as 1 golfer + 2 adults with 0 children
+    );
+    expect(result).toEqual({ status: "redirect", checkoutUrl: "https://checkout.stripe.com/cs_1" });
+  });
+
   it("re-creates a fresh Stripe checkout session on resubmission after an abandoned checkout, using currently saved counts as the base", async () => {
-    findRowByToken.mockResolvedValue(row({ golfRsvpCount: 1, receptionCount: 4 }));
+    findRowByToken.mockResolvedValue(row({ golfRsvpCount: 1, receptionAdultCount: 4 }));
     createCheckoutSession.mockResolvedValue({
       sessionId: "cs_2",
       checkoutUrl: "https://checkout.stripe.com/cs_2",
     });
 
-    const result = await submitRsvp("tok-abc", 1, 4);
+    const result = await submitRsvp("tok-abc", 1, 4, 0);
 
     expect(createCheckoutSession).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: "redirect", checkoutUrl: "https://checkout.stripe.com/cs_2" });
@@ -186,16 +221,17 @@ describe("submitRsvp", () => {
     process.env.STRIPE_ENABLED = "false";
     findRowByToken.mockResolvedValue(row());
 
-    const result = await submitRsvp("tok-abc", 1, 4);
+    const result = await submitRsvp("tok-abc", 1, 4, 0);
 
-    expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 4);
+    expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 4, 0);
     expect(createCheckoutSession).not.toHaveBeenCalled();
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail.mock.calls[0]?.[0]).toBe("attersons@example.com");
     expect(result).toEqual({
       status: "confirmed-payment-pending",
       golferCount: 1,
-      receptionCount: 4,
+      receptionAdultCount: 4,
+      receptionChildCount: 0,
       amountDue: 110,
     });
   });
@@ -204,13 +240,14 @@ describe("submitRsvp", () => {
     process.env.STRIPE_ENABLED = "false";
     findRowByToken.mockResolvedValue(row());
 
-    const result = await submitRsvp("tok-abc", 0, 0);
+    const result = await submitRsvp("tok-abc", 0, 0, 0);
 
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(result).toEqual({
       status: "confirmed",
       golferCount: 0,
-      receptionCount: 0,
+      receptionAdultCount: 0,
+      receptionChildCount: 0,
       refundNote: false,
     });
   });
@@ -219,17 +256,18 @@ describe("submitRsvp", () => {
     it("allows decreasing below what was already paid, writes the lower counts, and flags a refund note instead of charging anything", async () => {
       // Already paid $110 for 1 golfer + 4 reception; now dropping to 1 golfer + 0 reception ($50 owed).
       findRowByToken.mockResolvedValue(
-        row({ paymentStatus: "paid", paymentAmount: 110, golfRsvpCount: 1, receptionCount: 4 }),
+        row({ paymentStatus: "paid", paymentAmount: 110, golfRsvpCount: 1, receptionAdultCount: 4 }),
       );
 
-      const result = await submitRsvp("tok-abc", 1, 0);
+      const result = await submitRsvp("tok-abc", 1, 0, 0);
 
-      expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 0);
+      expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 0, 0);
       expect(createCheckoutSession).not.toHaveBeenCalled();
       expect(result).toEqual({
         status: "confirmed",
         golferCount: 1,
-        receptionCount: 0,
+        receptionAdultCount: 0,
+        receptionChildCount: 0,
         refundNote: true,
       });
     });
@@ -237,14 +275,14 @@ describe("submitRsvp", () => {
     it("charges only the incremental difference when increasing reception count after already paying, not the full new total", async () => {
       // Already paid $70 for 1 golfer + 2 reception; now bumping reception to 4 ($110 total) -- should owe just $40 more.
       findRowByToken.mockResolvedValue(
-        row({ paymentStatus: "paid", paymentAmount: 70, golfRsvpCount: 1, receptionCount: 2 }),
+        row({ paymentStatus: "paid", paymentAmount: 70, golfRsvpCount: 1, receptionAdultCount: 2 }),
       );
       createCheckoutSession.mockResolvedValue({
         sessionId: "cs_3",
         checkoutUrl: "https://checkout.stripe.com/cs_3",
       });
 
-      const result = await submitRsvp("tok-abc", 1, 4);
+      const result = await submitRsvp("tok-abc", 1, 4, 0);
 
       expect(createCheckoutSession).toHaveBeenCalledWith({
         token: "tok-abc",
@@ -259,13 +297,14 @@ describe("submitRsvp", () => {
     it("resubmitting the exact same counts after paying owes nothing further and carries no refund note", async () => {
       findRowByToken.mockResolvedValue(row({ paymentStatus: "paid", paymentAmount: 50, golfRsvpCount: 1 }));
 
-      const result = await submitRsvp("tok-abc", 1, 0);
+      const result = await submitRsvp("tok-abc", 1, 0, 0);
 
       expect(createCheckoutSession).not.toHaveBeenCalled();
       expect(result).toEqual({
         status: "confirmed",
         golferCount: 1,
-        receptionCount: 0,
+        receptionAdultCount: 0,
+        receptionChildCount: 0,
         refundNote: false,
       });
     });
@@ -273,17 +312,36 @@ describe("submitRsvp", () => {
     it("STRIPE_ENABLED=false still charges only the incremental difference for an already-paid row", async () => {
       process.env.STRIPE_ENABLED = "false";
       findRowByToken.mockResolvedValue(
-        row({ paymentStatus: "paid", paymentAmount: 70, golfRsvpCount: 1, receptionCount: 2 }),
+        row({ paymentStatus: "paid", paymentAmount: 70, golfRsvpCount: 1, receptionAdultCount: 2 }),
       );
 
-      const result = await submitRsvp("tok-abc", 1, 4);
+      const result = await submitRsvp("tok-abc", 1, 4, 0);
 
       expect(createCheckoutSession).not.toHaveBeenCalled();
       expect(result).toEqual({
         status: "confirmed-payment-pending",
         golferCount: 1,
-        receptionCount: 4,
+        receptionAdultCount: 4,
+        receptionChildCount: 0,
         amountDue: 40,
+      });
+    });
+
+    it("increasing only the child count after already paying owes nothing further", async () => {
+      findRowByToken.mockResolvedValue(
+        row({ paymentStatus: "paid", paymentAmount: 50, golfRsvpCount: 1, receptionAdultCount: 1 }),
+      );
+
+      const result = await submitRsvp("tok-abc", 1, 1, 3);
+
+      expect(updateRsvpCounts).toHaveBeenCalledWith(7, 1, 1, 3);
+      expect(createCheckoutSession).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        status: "confirmed",
+        golferCount: 1,
+        receptionAdultCount: 1,
+        receptionChildCount: 3,
+        refundNote: false,
       });
     });
   });

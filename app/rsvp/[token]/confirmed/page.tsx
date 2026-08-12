@@ -14,19 +14,23 @@ export default async function ConfirmedPage({
   if (!row) return <NotFound />;
 
   if (row.paymentStatus === "paid") {
+    const adultCount = row.receptionAdultCount ?? 0;
+    const childCount = row.receptionChildCount ?? 0;
+    const reception = adultCount > 0 || childCount > 0;
+    const receptionSummary = `${adultCount} adult${adultCount === 1 ? "" : "s"}${
+      childCount > 0 ? ` + ${childCount} child${childCount === 1 ? "" : "ren"}` : ""
+    }`;
+
     return (
       <main className="frame">
         <div className="card">
-          <EventHead golfing={(row.golfRsvpCount ?? 0) > 0} reception={(row.receptionCount ?? 0) > 0} />
+          <EventHead golfing={(row.golfRsvpCount ?? 0) > 0} reception={reception} />
           <h1>
-            You&apos;re confirmed — {row.golfRsvpCount ?? 0} golfing, {row.receptionCount ?? 0} at the
+            You&apos;re confirmed — {row.golfRsvpCount ?? 0} golfing, {receptionSummary} at the
             reception
           </h1>
           <p className="lede">Payment received. A confirmation email is on its way. See you on the course!</p>
-          <CalendarLinks
-            golfing={(row.golfRsvpCount ?? 0) > 0}
-            reception={(row.receptionCount ?? 0) > 0}
-          />
+          <CalendarLinks golfing={(row.golfRsvpCount ?? 0) > 0} reception={reception} />
         </div>
       </main>
     );

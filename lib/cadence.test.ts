@@ -35,7 +35,8 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     email: "test@example.com",
     golfInviteTier: 1,
     golfRsvpCount: null,
-    receptionCount: null,
+    receptionAdultCount: null,
+    receptionChildCount: null,
     rsvpToken: "token123",
     paymentStatus: "unpaid",
     paymentAmount: null,
@@ -51,23 +52,23 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
 
 describe("hasResponded", () => {
   it("is false when reception count is blank", () => {
-    expect(hasResponded(row({ receptionCount: null, golfRsvpCount: 0 }))).toBe(false);
+    expect(hasResponded(row({ receptionAdultCount: null, golfRsvpCount: 0 }))).toBe(false);
   });
 
   it("is true for 0 golfers and a non-blank reception count", () => {
-    expect(hasResponded(row({ receptionCount: 3, golfRsvpCount: 0 }))).toBe(true);
+    expect(hasResponded(row({ receptionAdultCount: 3, golfRsvpCount: 0 }))).toBe(true);
   });
 
   it("is true for 0/0 (declined everything)", () => {
-    expect(hasResponded(row({ receptionCount: 0, golfRsvpCount: 0 }))).toBe(true);
+    expect(hasResponded(row({ receptionAdultCount: 0, golfRsvpCount: 0 }))).toBe(true);
   });
 
   it("is true when golfers > 0, regardless of payment status -- responding and paying are separate concerns", () => {
     expect(
-      hasResponded(row({ receptionCount: 4, golfRsvpCount: 2, paymentStatus: "unpaid" })),
+      hasResponded(row({ receptionAdultCount: 4, golfRsvpCount: 2, paymentStatus: "unpaid" })),
     ).toBe(true);
     expect(
-      hasResponded(row({ receptionCount: 4, golfRsvpCount: 2, paymentStatus: "paid" })),
+      hasResponded(row({ receptionAdultCount: 4, golfRsvpCount: 2, paymentStatus: "paid" })),
     ).toBe(true);
   });
 });
@@ -116,7 +117,7 @@ describe("shouldSendInitialInvite", () => {
   it("skips a row that has already fully responded, even if its date arrived", () => {
     expect(
       shouldSendInitialInvite(
-        row({ golfInviteTier: 1, receptionCount: 0, golfRsvpCount: 0 }),
+        row({ golfInviteTier: 1, receptionAdultCount: 0, golfRsvpCount: 0 }),
         "2026-09-01",
       ),
     ).toBe(false);
@@ -138,7 +139,7 @@ describe("shouldSendInitialInvite", () => {
   it("tier 0 still skips a row that has already fully responded", () => {
     expect(
       shouldSendInitialInvite(
-        row({ golfInviteTier: 0, receptionCount: 0, golfRsvpCount: 0 }),
+        row({ golfInviteTier: 0, receptionAdultCount: 0, golfRsvpCount: 0 }),
         "2026-07-16",
       ),
     ).toBe(false);
@@ -155,7 +156,7 @@ describe("shouldSendReminder", () => {
   it("skips a fully-responded row", () => {
     expect(
       shouldSendReminder(
-        row({ inviteSentAt: "2026-08-01", receptionCount: 2, golfRsvpCount: 0 }),
+        row({ inviteSentAt: "2026-08-01", receptionAdultCount: 2, golfRsvpCount: 0 }),
         "2026-09-01",
       ),
     ).toEqual({ send: false });
@@ -257,7 +258,7 @@ describe("shouldSendReminder", () => {
           reminderCount: 2,
           lastReminderSentAt: "2026-08-29",
           golfRsvpCount: 3,
-          receptionCount: 5,
+          receptionAdultCount: 5,
           paymentStatus: "unpaid",
         }),
         "2026-09-02",
@@ -273,7 +274,7 @@ describe("shouldSendReminder", () => {
           reminderCount: 2,
           lastReminderSentAt: "2026-08-29",
           golfRsvpCount: 3,
-          receptionCount: 5,
+          receptionAdultCount: 5,
           paymentStatus: "paid",
         }),
         "2026-09-02",
@@ -284,7 +285,7 @@ describe("shouldSendReminder", () => {
 
 describe("shouldSendPaymentRequest", () => {
   it("does not send if they haven't responded yet", () => {
-    expect(shouldSendPaymentRequest(row({ receptionCount: null }), 50, 20)).toEqual({
+    expect(shouldSendPaymentRequest(row({ receptionAdultCount: null }), 50, 20)).toEqual({
       send: false,
     });
   });
@@ -292,7 +293,7 @@ describe("shouldSendPaymentRequest", () => {
   it("does not send if already sent", () => {
     expect(
       shouldSendPaymentRequest(
-        row({ golfRsvpCount: 1, receptionCount: 1, paymentRequestSentAt: "2026-08-20" }),
+        row({ golfRsvpCount: 1, receptionAdultCount: 1, paymentRequestSentAt: "2026-08-20" }),
         50,
         20,
       ),
@@ -301,7 +302,7 @@ describe("shouldSendPaymentRequest", () => {
 
   it("does not send when nothing is owed (declined everything)", () => {
     expect(
-      shouldSendPaymentRequest(row({ golfRsvpCount: 0, receptionCount: 0 }), 50, 20),
+      shouldSendPaymentRequest(row({ golfRsvpCount: 0, receptionAdultCount: 0 }), 50, 20),
     ).toEqual({ send: false });
   });
 
@@ -310,7 +311,7 @@ describe("shouldSendPaymentRequest", () => {
       shouldSendPaymentRequest(
         row({
           golfRsvpCount: 1,
-          receptionCount: 1,
+          receptionAdultCount: 1,
           paymentStatus: "paid",
           paymentAmount: 50,
         }),
@@ -322,7 +323,7 @@ describe("shouldSendPaymentRequest", () => {
 
   it("sends with the correct amount due for an unpaid balance", () => {
     expect(
-      shouldSendPaymentRequest(row({ golfRsvpCount: 1, receptionCount: 2 }), 50, 20),
+      shouldSendPaymentRequest(row({ golfRsvpCount: 1, receptionAdultCount: 2 }), 50, 20),
     ).toEqual({ send: true, amountDue: 70 });
   });
 
@@ -331,7 +332,7 @@ describe("shouldSendPaymentRequest", () => {
       shouldSendPaymentRequest(
         row({
           golfRsvpCount: 3,
-          receptionCount: 0,
+          receptionAdultCount: 0,
           paymentStatus: "paid",
           paymentAmount: 100,
         }),
@@ -339,5 +340,11 @@ describe("shouldSendPaymentRequest", () => {
         20,
       ),
     ).toEqual({ send: true, amountDue: 50 });
+  });
+
+  it("never bills for children, however many are coming", () => {
+    expect(
+      shouldSendPaymentRequest(row({ golfRsvpCount: 0, receptionAdultCount: 0, receptionChildCount: 5 }), 50, 20),
+    ).toEqual({ send: false });
   });
 });

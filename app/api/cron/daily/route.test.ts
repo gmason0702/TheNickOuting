@@ -25,7 +25,8 @@ function row(overrides: Partial<InviteRow> = {}): InviteRow {
     email: "test@example.com",
     golfInviteTier: 1,
     golfRsvpCount: null,
-    receptionCount: null,
+    receptionAdultCount: null,
+    receptionChildCount: null,
     rsvpToken: "tok",
     paymentStatus: "unpaid",
     paymentAmount: null,
@@ -140,7 +141,7 @@ describe("daily cron route", () => {
     vi.setSystemTime(new Date("2026-09-01T00:00:00Z"));
 
     getAllRows.mockResolvedValue([
-      row({ golfInviteTier: 1, golfRsvpCount: 0, receptionCount: 0 }),
+      row({ golfInviteTier: 1, golfRsvpCount: 0, receptionAdultCount: 0 }),
     ]);
 
     const res = await GET(makeRequest());
@@ -176,7 +177,7 @@ describe("daily cron route", () => {
         reminderCount: 2,
         lastReminderSentAt: "2026-08-29",
         golfRsvpCount: 2,
-        receptionCount: 4,
+        receptionAdultCount: 4,
         paymentStatus: "unpaid",
       }),
     ]);
@@ -200,7 +201,7 @@ describe("daily cron route", () => {
         reminderCount: 2,
         lastReminderSentAt: "2026-08-29",
         golfRsvpCount: 2,
-        receptionCount: 4,
+        receptionAdultCount: 4,
         paymentStatus: "paid",
         paymentAmount: 210,
       }),
@@ -270,7 +271,7 @@ describe("daily cron route", () => {
       vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
 
       getAllRows.mockResolvedValue([
-        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 1, receptionCount: 2 }),
+        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 1, receptionAdultCount: 2 }),
       ]);
 
       const res = await GET(makeRequest());
@@ -289,7 +290,7 @@ describe("daily cron route", () => {
       vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
 
       getAllRows.mockResolvedValue([
-        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 1, receptionCount: 2 }),
+        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 1, receptionAdultCount: 2 }),
       ]);
 
       const res = await GET(makeRequest());
@@ -308,7 +309,7 @@ describe("daily cron route", () => {
         row({
           inviteSentAt: "2026-08-01",
           golfRsvpCount: 1,
-          receptionCount: 2,
+          receptionAdultCount: 2,
           paymentRequestSentAt: "2026-08-25",
         }),
       ]);
@@ -325,7 +326,7 @@ describe("daily cron route", () => {
       vi.setSystemTime(new Date("2026-09-02T00:00:00Z"));
 
       getAllRows.mockResolvedValue([
-        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 0, receptionCount: 0 }),
+        row({ inviteSentAt: "2026-08-01", golfRsvpCount: 0, receptionAdultCount: 0 }),
       ]);
 
       const res = await GET(makeRequest());

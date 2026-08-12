@@ -12,17 +12,25 @@ interface Props {
   fee: number;
   receptionFee: number;
   initialGolferCount: number;
-  initialReceptionCount: number;
+  initialReceptionAdultCount: number;
+  initialReceptionChildCount: number;
   /** Golfers already on the books across every other invite, i.e. excluding this one. */
   othersGolferCount: number;
 }
 
 interface ConfirmedState {
   golferCount: number;
-  receptionCount: number;
+  receptionAdultCount: number;
+  receptionChildCount: number;
   paymentPending: boolean;
   amountDue: number;
   refundNote: boolean;
+}
+
+function formatReceptionHeadcount(adultCount: number, childCount: number): string {
+  const adults = `${adultCount} adult${adultCount === 1 ? "" : "s"}`;
+  if (childCount === 0) return adults;
+  return `${adults} + ${childCount} child${childCount === 1 ? "" : "ren"}`;
 }
 
 export function RsvpForm({
@@ -31,11 +39,13 @@ export function RsvpForm({
   fee,
   receptionFee,
   initialGolferCount,
-  initialReceptionCount,
+  initialReceptionAdultCount,
+  initialReceptionChildCount,
   othersGolferCount,
 }: Props) {
   const [golfing, setGolfing] = useState(initialGolferCount > 0);
-  const [receptionCount, setReceptionCount] = useState(initialReceptionCount);
+  const [receptionAdultCount, setReceptionAdultCount] = useState(initialReceptionAdultCount);
+  const [receptionChildCount, setReceptionChildCount] = useState(initialReceptionChildCount);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<ConfirmedState | null>(null);
@@ -46,7 +56,7 @@ export function RsvpForm({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await submitRsvp(token, golferCount, receptionCount);
+      const result = await submitRsvp(token, golferCount, receptionAdultCount, receptionChildCount);
       if (result.status === "redirect") {
         window.location.href = result.checkoutUrl;
         return;
@@ -54,7 +64,8 @@ export function RsvpForm({
       if (result.status === "confirmed") {
         setConfirmed({
           golferCount: result.golferCount,
-          receptionCount: result.receptionCount,
+          receptionAdultCount: result.receptionAdultCount,
+          receptionChildCount: result.receptionChildCount,
           paymentPending: false,
           amountDue: 0,
           refundNote: result.refundNote,
@@ -62,7 +73,8 @@ export function RsvpForm({
       } else if (result.status === "confirmed-payment-pending") {
         setConfirmed({
           golferCount: result.golferCount,
-          receptionCount: result.receptionCount,
+          receptionAdultCount: result.receptionAdultCount,
+          receptionChildCount: result.receptionChildCount,
           paymentPending: true,
           amountDue: result.amountDue,
           refundNote: false,
@@ -80,18 +92,24 @@ export function RsvpForm({
   }
 
   if (confirmed) {
-    const isDecline = confirmed.golferCount === 0 && confirmed.receptionCount === 0;
+    const isDecline =
+      confirmed.golferCount === 0 && confirmed.receptionAdultCount === 0 && confirmed.receptionChildCount === 0;
+    const receptionAtReception = confirmed.receptionAdultCount > 0 || confirmed.receptionChildCount > 0;
+    const receptionSummary = formatReceptionHeadcount(
+      confirmed.receptionAdultCount,
+      confirmed.receptionChildCount,
+    );
 
     let headline: string;
     let body: string;
     if (confirmed.paymentPending) {
-      headline = `You're confirmed — ${confirmed.golferCount} golfing, ${confirmed.receptionCount} at the reception`;
+      headline = `You're confirmed — ${confirmed.golferCount} golfing, ${receptionSummary} at the reception`;
       body = `You owe $${confirmed.amountDue.toFixed(2)} — payment collection isn't set up yet, we'll follow up separately once it's ready. No action needed from you right now.`;
     } else if (isDecline) {
       headline = "Thanks for letting us know";
       body = "You're marked as not attending this year.";
     } else {
-      headline = `You're confirmed — ${confirmed.golferCount} golfing, ${confirmed.receptionCount} at the reception`;
+      headline = `You're confirmed — ${confirmed.golferCount} golfing, ${receptionSummary} at the reception`;
       body = "No additional payment is due.";
     }
     if (confirmed.refundNote) {
@@ -102,13 +120,13 @@ export function RsvpForm({
     return (
       <main className="frame">
         <div className="card">
-          <EventHead golfing={confirmed.golferCount > 0} reception={confirmed.receptionCount > 0} />
+          <EventHead golfing={confirmed.golferCount > 0} reception={receptionAtReception} />
           <h1>{headline}</h1>
           <p className="lede">
             {body} If your plans change, just use this same link again.
           </p>
           {!isDecline && (
-            <CalendarLinks golfing={confirmed.golferCount > 0} reception={confirmed.receptionCount > 0} />
+            <CalendarLinks golfing={confirmed.golferCount > 0} reception={receptionAtReception} />
           )}
           <button className="link-reset" onClick={() => setConfirmed(null)}>
             ← Update headcounts
@@ -133,8 +151,10 @@ export function RsvpForm({
           receptionFee={receptionFee}
           golfing={golfing}
           onGolfingChange={setGolfing}
-          receptionCount={receptionCount}
-          onReceptionCountChange={setReceptionCount}
+          receptionAdultCount={receptionAdultCount}
+          onReceptionAdultCountChange={setReceptionAdultCount}
+          receptionChildCount={receptionChildCount}
+          onReceptionChildCountChange={setReceptionChildCount}
           othersGolferCount={othersGolferCount}
         />
 
