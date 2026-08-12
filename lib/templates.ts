@@ -16,6 +16,10 @@ function formatReceptionHeadcount(adultCount: number, childCount: number): strin
   return `${adults} + ${childCount} child${childCount === 1 ? "" : "ren"}`;
 }
 
+function linkTroubleNote(): string {
+  return `<p>Trouble opening the link? Some work computers and networks block brand-new websites like this one — try your phone, a personal computer, or a non-work Wi-Fi connection instead.</p>`;
+}
+
 export function initialInviteEmail(params: {
   name: string;
   rsvpLink: string;
@@ -29,6 +33,7 @@ export function initialInviteEmail(params: {
       <p>Hi ${params.name},</p>
       <p>You're invited to this year's golf outing and reception on <strong>${eventDate}</strong>! Whether you're playing golf or just joining us for the reception afterward, we'd love to have you.</p>
       <p><strong>RSVP here:</strong> <a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      ${linkTroubleNote()}
       <p>Only one golf ticket per invite ($${params.golferFee}, includes a free adult reception seat for that golfer) — then tell us how many adults and children from your group will be at the reception, including the golfer if they're staying ($${params.receptionFee} per adult beyond your golf ticket — kids are free).</p>
       <p>Please RSVP if you can — see you on the course!</p>
     `),
@@ -43,6 +48,7 @@ export function reminderFirstEmail(params: { name: string; rsvpLink: string }): 
       <p>Hi ${params.name},</p>
       <p>Pssst — we haven't heard back yet on The Nick golf outing and reception on ${eventDate}. Do us a solid and let us know if you are golfing and how many are coming to the reception (even if you aren't coming):</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      ${linkTroubleNote()}
       <p>Takes 30 seconds.</p>
     `),
   };
@@ -56,6 +62,7 @@ export function reminderSecondEmail(params: { name: string; rsvpLink: string }):
       <p>Hi ${params.name},</p>
       <p>Following up again on the Nick Jacobi Memorial Outing — ${eventDate} is getting closer and we're finalizing headcount and tee times. Can you RSVP when you get a chance?</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      ${linkTroubleNote()}
     `),
   };
 }
@@ -68,6 +75,7 @@ export function reminderOngoingEmail(params: { name: string; rsvpLink: string })
       <p>Hi ${params.name},</p>
       <p>The Nick Jacobi Memorial Outing is coming up on ${eventDate} — we still need your RSVP to finalize the details. One click:</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      ${linkTroubleNote()}
       <p>If you're not able to make it this year, that's totally fine too — just let us know so we can plan around it.</p>
     `),
   };
@@ -81,6 +89,7 @@ export function reminderFinalCallEmail(params: { name: string; rsvpLink: string 
       <p>Hi ${params.name},</p>
       <p>The Nick Jacobi Memorial Outing is just days away (${eventDate}) and we still haven't heard from you. We need to lock in headcount very soon — can you RSVP today?</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      ${linkTroubleNote()}
       <p>If you can't make it, no worries at all — just let us know so we can finalize plans.</p>
     `),
   };
@@ -120,6 +129,7 @@ export function confirmationPaymentPendingEmail(params: {
       <p>Hi ${params.name},</p>
       <p>You're confirmed for ${params.golferCount} golfer(s) and ${reception} at the reception on ${eventDate} — you owe $${params.amountDue.toFixed(2)}. Payment collection isn't set up yet — we'll follow up separately with how to pay once it's ready. No action needed from you right now.</p>
       <p>Plans change? Revisit your link any time to update your headcounts: <a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      ${linkTroubleNote()}
       <p>See you on the course!</p>
     `),
   };
@@ -141,6 +151,7 @@ export function paymentRequestEmail(params: {
       <p>Hi ${params.name},</p>
       <p>Payment is now open! You're set for ${params.golferCount} golfer(s) and ${reception} at the reception on ${eventDate} — to lock in your spot, you owe <strong>$${params.amountDue.toFixed(2)}</strong>.</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      ${linkTroubleNote()}
       <p>That same link also lets you update your headcounts first, if anything's changed, before paying.</p>
     `),
   };
@@ -169,6 +180,7 @@ export function confirmationFreeEmail(params: {
       <p>Hi ${params.name},</p>
       <p>Thanks for letting us know! ${body}${refundLine} If your plans change, just use your link again:</p>
       <p><a href="${params.rsvpLink}">${params.rsvpLink}</a></p>
+      ${linkTroubleNote()}
     `),
   };
 }

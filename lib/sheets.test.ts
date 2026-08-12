@@ -5,7 +5,6 @@ const { mockRandomBytes } = vi.hoisted(() => ({ mockRandomBytes: vi.fn() }));
 const valuesGet = vi.fn();
 const valuesUpdate = vi.fn();
 const valuesBatchUpdate = vi.fn();
-const valuesAppend = vi.fn();
 
 vi.mock("crypto", () => ({ randomBytes: mockRandomBytes }));
 
@@ -24,7 +23,6 @@ vi.mock("googleapis", () => {
             get: valuesGet,
             update: valuesUpdate,
             batchUpdate: valuesBatchUpdate,
-            append: valuesAppend,
           },
         },
       })),
@@ -119,7 +117,6 @@ beforeEach(() => {
   valuesGet.mockReset();
   valuesUpdate.mockReset();
   valuesBatchUpdate.mockReset();
-  valuesAppend.mockReset();
   mockRandomBytes.mockReset();
   mockRandomBytes.mockImplementation(actualCrypto.randomBytes);
 });
@@ -331,10 +328,11 @@ describe("generateUniqueToken", () => {
 });
 
 describe("appendRow", () => {
-  it("appends all 18 columns in order, leaving tier/counts/manual columns blank", async () => {
-    valuesAppend.mockResolvedValue({
-      data: { updates: { updatedRange: "'Invites List - golf_invite_list'!A52:R52" } },
+  it("writes all 18 columns in order to the row right after the last existing row, leaving tier/counts/manual columns blank", async () => {
+    valuesGet.mockResolvedValue({
+      data: { values: Array.from({ length: 50 }, () => sheetRow()) },
     });
+    valuesUpdate.mockResolvedValue({});
 
     const rowNumber = await appendRow({
       name: "Jane Golfer",
@@ -343,11 +341,10 @@ describe("appendRow", () => {
     });
 
     expect(rowNumber).toBe(52);
-    expect(valuesAppend).toHaveBeenCalledTimes(1);
-    const call = valuesAppend.mock.calls[0]![0];
+    expect(valuesUpdate).toHaveBeenCalledTimes(1);
+    const call = valuesUpdate.mock.calls[0]![0];
     expect(call.spreadsheetId).toBe("sheet-id-123");
-    expect(call.range).toBe("'Invites List - golf_invite_list'!A2:R");
-    expect(call.insertDataOption).toBe("INSERT_ROWS");
+    expect(call.range).toBe("'Invites List - golf_invite_list'!A52:R52");
     expect(call.requestBody.values).toEqual([
       [
         "Jane Golfer",
@@ -372,11 +369,26 @@ describe("appendRow", () => {
     ]);
   });
 
-  it("throws if the append response is missing updatedRange", async () => {
-    valuesAppend.mockResolvedValue({ data: {} });
+  it("lands after a gap of stray/note rows below the real data, without shifting into a different column", async () => {
+    valuesGet.mockResolvedValue({
+      data: {
+        values: [
+          ...Array.from({ length: 40 }, () => sheetRow()),
+          ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "note: reorder tee times"],
+        ],
+      },
+    });
+    valuesUpdate.mockResolvedValue({});
 
-    await expect(
-      appendRow({ name: "Jane", email: "jane@example.com", rsvpToken: "tok" }),
-    ).rejects.toThrow("Sheet append response missing updatedRange");
+    const rowNumber = await appendRow({
+      name: "Jane Golfer",
+      email: "jane@example.com",
+      rsvpToken: "fresh-token",
+    });
+
+    expect(rowNumber).toBe(43);
+    const call = valuesUpdate.mock.calls[0]![0];
+    expect(call.range).toBe("'Invites List - golf_invite_list'!A43:R43");
+    expect(call.requestBody.values[0]![0]).toBe("Jane Golfer");
   });
 });

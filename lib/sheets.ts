@@ -107,25 +107,26 @@ export interface NewInvite {
   rsvpToken: string;
 }
 
-function parseRowNumberFromUpdatedRange(updatedRange: string): number {
-  const rowNumber = updatedRange.match(/![A-Z]+(\d+):/)?.[1];
-  if (!rowNumber) throw new Error(`Could not parse row number from updatedRange: ${updatedRange}`);
-  return parseInt(rowNumber, 10);
-}
-
 /**
  * Appends a brand-new walk-in row: name/email/token are known up front, everything
  * else starts blank/default (no golf_invite_tier — walk-ins never enter the tiered
  * invite/reminder cadence) exactly like an untouched imported row. Headcounts are
  * written separately via updateRsvpCounts, reusing that already-targeted write.
+ *
+ * Writes to an explicitly-computed row/column range rather than using the Sheets
+ * API's values.append, whose "find the table" heuristic can misalign to a stray
+ * far-right column if there's any other content (e.g. manual notes) below the
+ * real data within the A:R search range.
  */
 export async function appendRow(newInvite: NewInvite): Promise<number> {
   const sheets = getClient();
-  const res = await sheets.spreadsheets.values.append({
+  const existingRows = await getAllRows();
+  const rowNumber = existingRows.length + 2;
+
+  await sheets.spreadsheets.values.update({
     spreadsheetId: env.googleSheetId,
-    range: range(DATA_RANGE),
+    range: range(`A${rowNumber}:R${rowNumber}`),
     valueInputOption: "RAW",
-    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: [
         [
@@ -152,9 +153,7 @@ export async function appendRow(newInvite: NewInvite): Promise<number> {
     },
   });
 
-  const updatedRange = res.data.updates?.updatedRange;
-  if (!updatedRange) throw new Error("Sheet append response missing updatedRange");
-  return parseRowNumberFromUpdatedRange(updatedRange);
+  return rowNumber;
 }
 
 export async function updateRsvpCounts(
